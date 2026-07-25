@@ -1,170 +1,108 @@
 companies:
-  - ticker: "ASELS"
-    company: "Aselsan Elektronik Sanayi ve Ticaret A.Ş."
-    sector: "Savunma Sanayii"
-    documents:
-      - document_type: "annual_report"
-        period: "2025"
-        language: "tr"
-        source_url: "https://www.kap.org.tr/tr/api/BildirimPdf/1445121"
-      - document_type: "sustainability_report"
-        period: "2025"
-        language: "tr"
-        source_url: "https://www.kap.org.tr/tr/api/BildirimPdf/1492946"
-      - document_type: "investor_presentation"
-        period: "2026_Q1"
-        language: "tr"
-        source_url: "https://www.kap.org.tr/tr/api/BildirimPdf/1445120"
+  - id: akbank
+    name: Akbank T.A.Ş.
+    aliases:
+      - Akbank
+      - Akbank T.A.Ş.
+      - Akbank T.A.S.
+    official_domains:
+      - akbank.com
+      - akbankinvestorrelations.com
+    years: [2023, 2024, 2025]
 
-  - ticker: "THYAO"
-    company: "Türk Hava Yolları A.O."
-    sector: "Havacılık & Ulaştırma"
-    documents:
-      - document_type: "annual_report"
-        period: "2025"
-        language: "tr"
-        source_url: "https://www.kap.org.tr/tr/api/BildirimPdf/1402120"
-      - document_type: "sustainability_report"
-        period: "2025"
-        language: "tr"
-        source_url: "https://www.kap.org.tr/tr/api/BildirimPdf/1402121"
-      - document_type: "investor_presentation"
-        period: "2026_Q1"
-        language: "tr"
-        source_url: "https://www.kap.org.tr/tr/api/BildirimPdf/1402122"
+  - id: arcelik
+    name: Arçelik A.Ş.
+    aliases:
+      - Arçelik
+      - Arçelik A.Ş.
+      - Arcelik A.S.
+      - Beko
+    official_domains:
+      - arcelikglobal.com
+      - arcelik.com.tr
+    years: [2023, 2024, 2025]
 
-  - ticker: "TUPRS"
-    company: "Türkiye Petrol Rafinerileri A.Ş."
-    sector: "Enerji & Petrol"
-    documents:
-      - document_type: "annual_report"
-        period: "2025"
-        language: "tr"
-        source_url: "https://www.kap.org.tr/tr/api/BildirimPdf/1392651"
-      - document_type: "sustainability_report"
-        period: "2025"
-        language: "tr"
-        source_url: "https://www.kap.org.tr/tr/api/BildirimPdf/1392652"
-      - document_type: "investor_presentation"
-        period: "2026_Q1"
-        language: "tr"
-        source_url: "https://www.tupras.com.tr/assets/uploads/yatirimci-iliskileri/sunum/yatirimci-sunumu-mayis-2026.pdf"
+  - id: aselsan
+    name: Aselsan Elektronik Sanayi ve Ticaret A.Ş.
+    aliases:
+      - Aselsan
+      - Aselsan A.Ş.
+      - Aselsan Elektronik Sanayi ve Ticaret A.Ş.
+    official_domains:
+      - aselsan.com.tr
+      - aselsan.com
+    years: [2023, 2024, 2025]
 
-  - ticker: "FROTO"
-    company: "Ford Otomotiv Sanayi A.Ş."
-    sector: "Otomotiv"
-    documents:
-      - document_type: "annual_report"
-        period: "2025"
-        language: "tr"
-        source_url: "https://www.kap.org.tr/tr/api/BildirimPdf/1393820"
-      - document_type: "sustainability_report"
-        period: "2025"
-        language: "tr"
-        source_url: "https://www.fordotosan.com.tr/documents/Surdurulebilirlik/ford-otosan-2025-surdurulebilirlik-raporu.pdf"
-      - document_type: "investor_presentation"
-        period: "2026_Q1"
-        language: "tr"
-        source_url: "https://www.kap.org.tr/tr/api/BildirimPdf/1393821"
+  - id: ford_otosan
+    name: Ford Otomotiv Sanayi A.Ş.
+    aliases:
+      - Ford Otosan
+      - Ford Otomotiv
+      - Ford Otomotiv Sanayi A.Ş.
+    official_domains:
+      - fordotosan.com.tr
+    years: [2023, 2024, 2025]
 
-  - ticker: "ARCLK"
-    company: "Arçelik A.Ş."
-    sector: "Dayanıklı Tüketim"
-    documents:
-      - document_type: "annual_report"
-        period: "2025"
-        language: "tr"
-        source_url: "https://www.kap.org.tr/tr/api/BildirimPdf/1388910"
-      - document_type: "sustainability_report"
-        period: "2025"
-        language: "tr"
-        source_url: "https://www.kap.org.tr/tr/api/BildirimPdf/1388911"
-      - document_type: "investor_presentation"
-        period: "2026_Q1"
-        language: "tr"
-        source_url: "https://www.kap.org.tr/tr/api/BildirimPdf/1388912"
+  - id: koc_holding
+    name: Koç Holding A.Ş.
+    aliases:
+      - Koç Holding
+      - Koc Holding
+      - Koç Holding A.Ş.
+    official_domains:
+      - koc.com.tr
+    years: [2023, 2024, 2025]
 
-  - ticker: "TCELL"
-    company: "Turkcell İletişim Hizmetleri A.Ş."
-    sector: "Telekomünikasyon"
-    documents:
-      - document_type: "annual_report"
-        period: "2025"
-        language: "tr"
-        source_url: "https://www.kap.org.tr/tr/api/BildirimPdf/1402910"
-      - document_type: "sustainability_report"
-        period: "2025"
-        language: "tr"
-        source_url: "https://www.kap.org.tr/tr/api/BildirimPdf/1402911"
-      - document_type: "investor_presentation"
-        period: "2026_Q1"
-        language: "tr"
-        source_url: "https://www.kap.org.tr/tr/api/BildirimPdf/1402912"
+  - id: migros
+    name: Migros Ticaret A.Ş.
+    aliases:
+      - Migros
+      - Migros Ticaret
+      - Migros Ticaret A.Ş.
+    official_domains:
+      - migroskurumsal.com
+      - migros.com.tr
+      - migroskurumsalstr.blob.core.windows.net
+    years: [2023, 2024, 2025]
 
-  - ticker: "SISE"
-    company: "Türkiye Şişe ve Cam Fabrikaları A.Ş."
-    sector: "Cam & Kimyasallar"
-    documents:
-      - document_type: "annual_report"
-        period: "2025"
-        language: "tr"
-        source_url: "https://www.kap.org.tr/tr/api/BildirimPdf/1396210"
-      - document_type: "sustainability_report"
-        period: "2025"
-        language: "tr"
-        source_url: "https://www.kap.org.tr/tr/api/BildirimPdf/1396211"
-      - document_type: "investor_presentation"
-        period: "2026_Q1"
-        language: "tr"
-        source_url: "https://www.kap.org.tr/tr/api/BildirimPdf/1396213"
+  - id: sisecam
+    name: Türkiye Şişe ve Cam Fabrikaları A.Ş.
+    aliases:
+      - Şişecam
+      - Sisecam
+      - Türkiye Şişe ve Cam Fabrikaları A.Ş.
+    official_domains:
+      - sisecam.com.tr
+      - sisecam.com
+    years: [2023, 2024, 2025]
 
-  - ticker: "AKBNK"
-    company: "Akbank T.A.Ş."
-    sector: "Bankacılık"
-    documents:
-      - document_type: "annual_report"
-        period: "2025"
-        language: "tr"
-        source_url: "https://www.kap.org.tr/tr/api/BildirimPdf/1401110"
-      - document_type: "sustainability_report"
-        period: "2025"
-        language: "tr"
-        source_url: "https://www.kap.org.tr/tr/api/BildirimPdf/1401111"
-      - document_type: "investor_presentation"
-        period: "2026_Q1"
-        language: "tr"
-        source_url: "https://www.kap.org.tr/tr/api/BildirimPdf/1401113"
+  - id: turkcell
+    name: Turkcell İletişim Hizmetleri A.Ş.
+    aliases:
+      - Turkcell
+      - Turkcell İletişim Hizmetleri A.Ş.
+    official_domains:
+      - turkcell.com.tr
+      - turkcell.com
+    years: [2023, 2024, 2025]
 
-  - ticker: "KCHOL"
-    company: "Koç Holding A.Ş."
-    sector: "Holding"
-    documents:
-      - document_type: "annual_report"
-        period: "2025"
-        language: "tr"
-        source_url: "https://www.kap.org.tr/tr/api/BildirimPdf/1398510"
-      - document_type: "sustainability_report"
-        period: "2025"
-        language: "tr"
-        source_url: "https://www.kap.org.tr/tr/api/BildirimPdf/1398511"
-      - document_type: "investor_presentation"
-        period: "2026_Q1"
-        language: "tr"
-        source_url: "https://www.kap.org.tr/tr/api/BildirimPdf/1398513"
+  - id: thyao
+    name: Türk Hava Yolları A.O.
+    aliases:
+      - Türk Hava Yolları
+      - Turkish Airlines
+      - Türk Hava Yolları A.O.
+    official_domains:
+      - turkishairlines.com
+    years: [2023, 2024, 2025]
 
-  - ticker: "MGROS"
-    company: "Migros Ticaret A.Ş."
-    sector: "Perakende"
-    documents:
-      - document_type: "annual_report"
-        period: "2025"
-        language: "tr"
-        source_url: "https://migroskurumsalstr.blob.core.windows.net/migroskurumsalstr/-migros-tr2025-interaktif-639088646656876356.pdf"
-      - document_type: "sustainability_report"
-        period: "2025"
-        language: "tr"
-        source_url: "https://www.kap.org.tr/tr/api/BildirimPdf/1395110"
-      - document_type: "investor_presentation"
-        period: "2026_Q1"
-        language: "tr"
-        source_url: "https://www.kap.org.tr/tr/api/BildirimPdf/1395112"
+  - id: tupras
+    name: Türkiye Petrol Rafinerileri A.Ş.
+    aliases:
+      - Tüpraş
+      - Tupras
+      - Türkiye Petrol Rafinerileri A.Ş.
+    official_domains:
+      - tupras.com.tr
+      - tupras.com
+    years: [2023, 2024, 2025]

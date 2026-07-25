@@ -8,6 +8,7 @@ __pycache__/
 .ruff_cache/
 .mypy_cache/
 data/raw/
+data/quarantine/
 data/processed/
 models/
 checkpoints/
