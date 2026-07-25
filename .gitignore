@@ -9,7 +9,9 @@ __pycache__/
 .mypy_cache/
 data/raw/
 data/quarantine/
+data/archive/
 data/processed/
+
 models/
 checkpoints/
 .DS_Store

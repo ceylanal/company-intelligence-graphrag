@@ -268,14 +268,40 @@ def crawl_company_domain(company_cfg: dict, max_depth: int = 2):
 
 def main():
     parser = argparse.ArgumentParser(description="Verified Company Report Crawler")
-    parser.add_argument("--company", type=str, help="Company ID to crawl (e.g. akbank)")
+    parser.add_argument("--company", type=str, help="Company ID or Ticker to crawl (e.g. akbank or AKBNK)")
     parser.add_argument("--all", action="store_true", help="Crawl all configured companies")
+    parser.add_argument("--missing", action="store_true", help="Crawl missing annual report targets from data/missing_reports.json")
     args = parser.parse_args()
 
     companies = load_companies_config()
     comp_map = {c["id"]: c for c in companies}
+    # Also map ticker to company config
+    for c in companies:
+        comp_map[c["id"].upper()] = c
 
-    if args.company:
+    if args.missing:
+        missing_json_path = PROJECT_ROOT / "data" / "missing_reports.json"
+        if not missing_json_path.exists():
+            print(f"Error: {missing_json_path} not found. Run scripts/build_baseline.py first.")
+            sys.exit(1)
+
+        with open(missing_json_path, "r", encoding="utf-8") as f:
+            missing_info = json.load(f)
+
+        missing_targets = missing_info.get("missing_targets", [])
+        print(f"Targeting crawler at {len(missing_targets)} missing annual report slots...\n")
+
+        cids_to_crawl = sorted(list(set(t["canonical_ticker"].lower() for t in missing_targets)))
+        total_res = {"downloaded": 0, "verified": 0, "quarantined": 0}
+
+        for cid in cids_to_crawl:
+            if cid in comp_map:
+                res = crawl_company_domain(comp_map[cid])
+                for k in total_res:
+                    total_res[k] += res[k]
+
+        print(f"\nCompleted missing targets crawl: {total_res}")
+    elif args.company:
         cid = args.company.lower()
         if cid not in comp_map:
             print(f"Error: Company '{cid}' not found in config/companies.yaml")
@@ -285,12 +311,14 @@ def main():
     elif args.all:
         total_res = {"downloaded": 0, "verified": 0, "quarantined": 0}
         for cid, comp_cfg in comp_map.items():
-            res = crawl_company_domain(comp_cfg)
-            for k in total_res:
-                total_res[k] += res[k]
+            if len(cid) > 5:  # filter duplicate ticker keys
+                res = crawl_company_domain(comp_cfg)
+                for k in total_res:
+                    total_res[k] += res[k]
         print(f"\nCompleted crawl for all companies: {total_res}")
     else:
         parser.print_help()
+
 
 
 if __name__ == "__main__":
