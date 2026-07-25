@@ -15,8 +15,10 @@ import os
 import sys
 import json
 import time
+import shutil
 import argparse
 import urllib.robotparser
+
 from urllib.parse import urlparse, urljoin, unquote
 from pathlib import Path
 import requests
@@ -107,10 +109,11 @@ def crawl_company_domain(company_cfg: dict, max_depth: int = 2):
     company_name = company_cfg["name"]
     official_domains = company_cfg.get("official_domains", [])
 
-    print(f"\n============================================================")
-    print(f"Crawling Reports for: {company_name} ({company_id})")
-    print(f"Official Domains: {official_domains}")
-    print(f"============================================================")
+    print(f"\n============================================================", flush=True)
+    print(f"Crawling Reports for: {company_name} ({company_id})", flush=True)
+    print(f"Official Domains: {official_domains}", flush=True)
+    print(f"============================================================", flush=True)
+
 
     session = requests.Session()
     session.headers.update(HTTP_HEADERS)
