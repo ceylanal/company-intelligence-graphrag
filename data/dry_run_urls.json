@@ -1,0 +1,20 @@
+{
+  "AKBNK_2023": [],
+  "AKBNK_2024": [],
+  "AKBNK_2025": [],
+  "THYAO_2023": [
+    "https://investor.turkishairlines.com/documents/Thy_Faaliyet_Raporu_2023.pdf",
+    "https://investor.turkishairlines.com/documents/Turkish_Airlines_Annual_Report_2023.pdf",
+    "https://www.kap.org.tr/tr/api/BildirimPdf/thy_2023_faaliyet_raporu"
+  ],
+  "THYAO_2024": [
+    "https://investor.turkishairlines.com/documents/Thy_Faaliyet_Raporu_2024.pdf",
+    "https://investor.turkishairlines.com/documents/Turkish_Airlines_Annual_Report_2024.pdf",
+    "https://www.kap.org.tr/tr/api/BildirimPdf/thy_2024_faaliyet_raporu"
+  ],
+  "THYAO_2025": [
+    "https://investor.turkishairlines.com/documents/Thy_Faaliyet_Raporu_2025.pdf",
+    "https://investor.turkishairlines.com/documents/Turkish_Airlines_Annual_Report_2025.pdf",
+    "https://www.kap.org.tr/tr/api/BildirimPdf/thy_2025_faaliyet_raporu"
+  ]
+}

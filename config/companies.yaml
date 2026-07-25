@@ -1,5 +1,6 @@
 companies:
   - id: akbank
+
     name: Akbank T.A.Ş.
     aliases:
       - Akbank
@@ -8,7 +9,9 @@ companies:
     official_domains:
       - akbank.com
       - akbankinvestorrelations.com
+      - akbankinvestorrelations.com/tr/finansal-bilgiler/faaliyet-raporlari.aspx
     years: [2023, 2024, 2025]
+
 
   - id: arcelik
     name: Arçelik A.Ş.
@@ -94,7 +97,10 @@ companies:
       - Türk Hava Yolları A.O.
     official_domains:
       - turkishairlines.com
+      - investor.turkishairlines.com
+      - investor.turkishairlines.com/tr/finansal-ve-operasyonel-veriler/faaliyet-raporlari
     years: [2023, 2024, 2025]
+
 
   - id: tupras
     name: Türkiye Petrol Rafinerileri A.Ş.
