@@ -20,15 +20,15 @@ Rules:
 8. Updates data/report_manifest.jsonl and data/missing_reports.json upon successful downloads.
 """
 
-import os
-import sys
-import json
-import time
-import shutil
 import argparse
+import json
+import shutil
+import sys
+import time
 import urllib.robotparser
-from urllib.parse import urlparse, urljoin
 from pathlib import Path
+from urllib.parse import urljoin, urlparse
+
 import requests
 from bs4 import BeautifulSoup
 
@@ -41,7 +41,7 @@ MISSING_JSON = PROJECT_ROOT / "data" / "missing_reports.json"
 DRY_RUN_JSON = PROJECT_ROOT / "data" / "dry_run_urls.json"
 
 sys.path.insert(0, str(PROJECT_ROOT))
-from scripts.validate_reports import validate_pdf_content, load_companies_config
+from scripts.validate_reports import load_companies_config, validate_pdf_content
 
 REPORT_KEYWORDS = [
     "faaliyet raporu",
@@ -49,13 +49,13 @@ REPORT_KEYWORDS = [
     "annual report",
     "annual-report",
     "entegre faaliyet",
-    "entegre-faaliyet"
+    "entegre-faaliyet",
 ]
 
 HTTP_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,application/pdf;q=0.8,*/*;q=0.7",
-    "Accept-Language": "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7"
+    "Accept-Language": "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7",
 }
 
 
@@ -74,10 +74,7 @@ def is_allowed_by_robots(url: str, user_agent: str = "*") -> bool:
 def is_official_domain(url: str, official_domains: list[str]) -> bool:
     parsed = urlparse(url)
     domain = parsed.netloc.lower()
-    for allowed in official_domains:
-        if allowed.lower() in domain:
-            return True
-    return False
+    return any(allowed.lower() in domain for allowed in official_domains)
 
 
 def is_annual_report_link(href: str, link_text: str) -> bool:
@@ -99,7 +96,9 @@ def fetch_url(session: requests.Session, url: str, timeout: int = 15, max_retrie
     return None
 
 
-def search_kap_for_annual_report(session: requests.Session, company_name: str, year: int) -> list[str]:
+def search_kap_for_annual_report(
+    session: requests.Session, company_name: str, year: int
+) -> list[str]:
     """Fallback: Search KAP disclosures for official company annual report PDF links."""
     kap_pdf_urls = []
     try:
@@ -107,8 +106,8 @@ def search_kap_for_annual_report(session: requests.Session, company_name: str, y
         search_url = "https://www.kap.org.tr/tr/api/disclosures"
         payload = {
             "fromDate": f"{year}-01-01",
-            "toDate": f"{year+1}-05-30",
-            "subject": "Faaliyet Raporu"
+            "toDate": f"{year + 1}-05-30",
+            "subject": "Faaliyet Raporu",
         }
         resp = session.post(search_url, json=payload, timeout=12)
         if resp.status_code == 200:
@@ -123,10 +122,12 @@ def search_kap_for_annual_report(session: requests.Session, company_name: str, y
     return kap_pdf_urls
 
 
-def crawl_slot(company_cfg: dict, target_year: int, dry_run: bool = False, max_candidates: int = 10):
+def crawl_slot(
+    company_cfg: dict, target_year: int, dry_run: bool = False, max_candidates: int = 10
+):
     """Crawls official IR domains (and KAP fallback) for a single company-year target slot."""
     company_id = company_cfg["id"]
-    company_name = company_cfg["name"]
+    company_cfg["name"]
     ticker = company_cfg.get("canonical_ticker", company_id.upper())
     official_domains = company_cfg.get("official_domains", [])
 
@@ -134,6 +135,7 @@ def crawl_slot(company_cfg: dict, target_year: int, dry_run: bool = False, max_c
     session.headers.update(HTTP_HEADERS)
 
     import urllib3
+
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
     visited_urls = set()
@@ -142,25 +144,26 @@ def crawl_slot(company_cfg: dict, target_year: int, dry_run: bool = False, max_c
 
     # Fast direct IR candidate generator
     if ticker == "AKBNK":
-        candidate_urls.extend([
-            f"https://www.akbankinvestorrelations.com/pdf/{target_year}_faaliyet_raporu.pdf",
-            f"https://www.akbankinvestorrelations.com/pdf/akbank_{target_year}_annual_report.pdf",
-            f"https://www.kap.org.tr/tr/api/BildirimPdf/akbank_{target_year}_faaliyet_raporu"
-        ])
+        candidate_urls.extend(
+            [
+                f"https://www.akbankinvestorrelations.com/pdf/{target_year}_faaliyet_raporu.pdf",
+                f"https://www.akbankinvestorrelations.com/pdf/akbank_{target_year}_annual_report.pdf",
+                f"https://www.kap.org.tr/tr/api/BildirimPdf/akbank_{target_year}_faaliyet_raporu",
+            ]
+        )
     elif ticker == "THYAO":
-        candidate_urls.extend([
-            f"https://investor.turkishairlines.com/documents/Thy_Faaliyet_Raporu_{target_year}.pdf",
-            f"https://investor.turkishairlines.com/documents/Turkish_Airlines_Annual_Report_{target_year}.pdf",
-            f"https://www.kap.org.tr/tr/api/BildirimPdf/thy_{target_year}_faaliyet_raporu"
-        ])
+        candidate_urls.extend(
+            [
+                f"https://investor.turkishairlines.com/documents/Thy_Faaliyet_Raporu_{target_year}.pdf",
+                f"https://investor.turkishairlines.com/documents/Turkish_Airlines_Annual_Report_{target_year}.pdf",
+                f"https://www.kap.org.tr/tr/api/BildirimPdf/thy_{target_year}_faaliyet_raporu",
+            ]
+        )
 
     # Discover links on official IR domains
     for dom in official_domains:
-        if dom.startswith("http"):
-            su = dom
-        else:
-            su = f"https://www.{dom}"
-        
+        su = dom if dom.startswith("http") else f"https://www.{dom}"
+
         if su not in visited_urls and len(candidate_urls) < max_candidates:
             visited_urls.add(su)
             resp = fetch_url(session, su, timeout=5, max_retries=1)
@@ -172,9 +175,10 @@ def crawl_slot(company_cfg: dict, target_year: int, dry_run: bool = False, max_c
                     full_url = urljoin(su, href)
 
                     if full_url.lower().endswith(".pdf") or ".pdf" in full_url.lower():
-                        if is_annual_report_link(full_url, link_text) and (str(target_year) in full_url or str(target_year) in link_text):
-                            if full_url not in candidate_urls:
-                                candidate_urls.append(full_url)
+                        if is_annual_report_link(full_url, link_text) and (
+                            str(target_year) in full_url or str(target_year) in link_text
+                        ) and full_url not in candidate_urls:
+                            candidate_urls.append(full_url)
 
     # Limit to max_candidates
     candidate_urls = candidate_urls[:max_candidates]
@@ -187,9 +191,8 @@ def crawl_slot(company_cfg: dict, target_year: int, dry_run: bool = False, max_c
             "status": "dry_run_discovered" if candidate_urls else "dry_run_no_candidates",
             "candidate_urls": candidate_urls,
             "rejected_candidates": 0,
-            "duration_sec": duration
+            "duration_sec": duration,
         }
-
 
     # Step 3: Download & Validate Candidates (Early Stopping at 1st verified report)
     ticker_dir = RAW_DIR / ticker
@@ -221,7 +224,9 @@ def crawl_slot(company_cfg: dict, target_year: int, dry_run: bool = False, max_c
         if status == "verified" and val_res.get("year") == target_year:
             # Detect language
             text = val_res.get("text", "")
-            lang = "en" if "annual report" in text.lower() and "faaliyet" not in text.lower() else "tr"
+            lang = (
+                "en" if "annual report" in text.lower() and "faaliyet" not in text.lower() else "tr"
+            )
 
             std_filename = f"{ticker}__{target_year}__annual_report__{lang}.pdf"
             final_path = ticker_dir / std_filename
@@ -247,7 +252,7 @@ def crawl_slot(company_cfg: dict, target_year: int, dry_run: bool = False, max_c
         "source_url": verified_url,
         "rejected_candidates": rejected_count,
         "candidate_urls": candidate_urls,
-        "duration_sec": duration
+        "duration_sec": duration,
     }
 
 
@@ -255,9 +260,17 @@ def main():
     parser = argparse.ArgumentParser(description="Controlled Pilot Missing-Report Crawler")
     parser.add_argument("--company", type=str, help="Company ID or Ticker to crawl")
     parser.add_argument("--all", action="store_true", help="Crawl all configured companies")
-    parser.add_argument("--missing", action="store_true", help="Crawl missing targets from data/missing_reports.json")
-    parser.add_argument("--tickers", nargs="+", help="Filter target tickers (e.g. --tickers AKBNK THYAO)")
-    parser.add_argument("--dry-run", action="store_true", help="Discover candidate URLs without downloading")
+    parser.add_argument(
+        "--missing",
+        action="store_true",
+        help="Crawl missing targets from data/missing_reports.json",
+    )
+    parser.add_argument(
+        "--tickers", nargs="+", help="Filter target tickers (e.g. --tickers AKBNK THYAO)"
+    )
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Discover candidate URLs without downloading"
+    )
     args = parser.parse_args()
 
     companies = load_companies_config()
@@ -273,17 +286,21 @@ def main():
             print(f"Error: {MISSING_JSON} not found. Run scripts/build_baseline.py first.")
             sys.exit(1)
 
-        with open(MISSING_JSON, "r", encoding="utf-8") as f:
+        with open(MISSING_JSON, encoding="utf-8") as f:
             missing_info = json.load(f)
 
         missing_targets = missing_info.get("missing_targets", [])
 
         if args.tickers:
             filter_tickers = [t.upper() for t in args.tickers]
-            missing_targets = [t for t in missing_targets if t["canonical_ticker"].upper() in filter_tickers]
+            missing_targets = [
+                t for t in missing_targets if t["canonical_ticker"].upper() in filter_tickers
+            ]
 
         print("=" * 70)
-        print(f"CONTROLLED PILOT MISSING-REPORT CRAWLER ({'DRY-RUN' if args.dry_run else 'EXECUTION'})")
+        print(
+            f"CONTROLLED PILOT MISSING-REPORT CRAWLER ({'DRY-RUN' if args.dry_run else 'EXECUTION'})"
+        )
         print(f"Target Slots Count: {len(missing_targets)}")
         if args.tickers:
             print(f"Filtered Tickers  : {args.tickers}")
@@ -331,6 +348,7 @@ def main():
         # Update build_baseline if not dry run
         if not args.dry_run:
             from scripts.build_baseline import build_baseline
+
             build_baseline()
 
     else:

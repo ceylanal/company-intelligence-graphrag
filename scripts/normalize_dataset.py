@@ -17,15 +17,12 @@ Rules:
 9. Preserves all verified files.
 """
 
-import os
-import sys
+import contextlib
+import hashlib
 import json
 import re
 import shutil
-import hashlib
-import yaml
 from pathlib import Path
-from urllib.parse import urlparse
 
 try:
     import fitz  # PyMuPDF
@@ -54,70 +51,126 @@ FOLDER_CANONICAL_MAP = {
     "SISE": "SISE",
     "TCELL": "TCELL",
     "THYAO": "THYAO",
-    "TUPRS": "TUPRS"
+    "TUPRS": "TUPRS",
 }
 
 COMPANY_SPECS = {
     "AKBNK": {
         "company_id": "akbank",
         "name": "Akbank T.A.Ş.",
-        "aliases": ["akbank t.a.ş.", "akbank t.a.s.", "akbank t. a. ş.", "akbank t.a.s", "akbank t.a.ş", "akbank"],
-        "official_domains": ["akbank.com", "akbankinvestorrelations.com"]
+        "aliases": [
+            "akbank t.a.ş.",
+            "akbank t.a.s.",
+            "akbank t. a. ş.",
+            "akbank t.a.s",
+            "akbank t.a.ş",
+            "akbank",
+        ],
+        "official_domains": ["akbank.com", "akbankinvestorrelations.com"],
     },
     "ARCLK": {
         "company_id": "arcelik",
         "name": "Arçelik A.Ş.",
-        "aliases": ["arçelik a.ş.", "arcelik a.s.", "arçelik a. ş.", "arçelik", "arcelik", "beko a.ş.", "beko"],
-        "official_domains": ["arcelikglobal.com", "arcelik.com.tr", "bekoglobal.com"]
+        "aliases": [
+            "arçelik a.ş.",
+            "arcelik a.s.",
+            "arçelik a. ş.",
+            "arçelik",
+            "arcelik",
+            "beko a.ş.",
+            "beko",
+        ],
+        "official_domains": ["arcelikglobal.com", "arcelik.com.tr", "bekoglobal.com"],
     },
     "ASELS": {
         "company_id": "aselsan",
         "name": "Aselsan Elektronik Sanayi ve Ticaret A.Ş.",
-        "aliases": ["aselsan elektronik sanayi ve ticaret a.ş.", "aselsan elektronik sanayi", "aselsan a.ş.", "aselsan"],
-        "official_domains": ["aselsan.com.tr", "aselsan.com"]
+        "aliases": [
+            "aselsan elektronik sanayi ve ticaret a.ş.",
+            "aselsan elektronik sanayi",
+            "aselsan a.ş.",
+            "aselsan",
+        ],
+        "official_domains": ["aselsan.com.tr", "aselsan.com"],
     },
     "FROTO": {
         "company_id": "ford_otosan",
         "name": "Ford Otomotiv Sanayi A.Ş.",
-        "aliases": ["ford otomotiv sanayi a.ş.", "ford otomotiv sanayi", "ford otosan a.ş.", "ford otosan"],
-        "official_domains": ["fordotosan.com.tr"]
+        "aliases": [
+            "ford otomotiv sanayi a.ş.",
+            "ford otomotiv sanayi",
+            "ford otosan a.ş.",
+            "ford otosan",
+        ],
+        "official_domains": ["fordotosan.com.tr"],
     },
     "KCHOL": {
         "company_id": "koc_holding",
         "name": "Koç Holding A.Ş.",
-        "aliases": ["koç holding a.ş.", "koc holding a.s.", "koç holding a. ş.", "koç holding", "koc holding"],
-        "official_domains": ["koc.com.tr"]
+        "aliases": [
+            "koç holding a.ş.",
+            "koc holding a.s.",
+            "koç holding a. ş.",
+            "koç holding",
+            "koc holding",
+        ],
+        "official_domains": ["koc.com.tr"],
     },
     "MGROS": {
         "company_id": "migros",
         "name": "Migros Ticaret A.Ş.",
         "aliases": ["migros ticaret a.ş.", "migros ticaret a.s.", "migros ticaret a. ş.", "migros"],
-        "official_domains": ["migroskurumsal.com", "migros.com.tr", "migroskurumsalstr.blob.core.windows.net"]
+        "official_domains": [
+            "migroskurumsal.com",
+            "migros.com.tr",
+            "migroskurumsalstr.blob.core.windows.net",
+        ],
     },
     "SISE": {
         "company_id": "sisecam",
         "name": "Türkiye Şişe ve Cam Fabrikaları A.Ş.",
-        "aliases": ["türkiye şişe ve cam fabrikaları a.ş.", "türkiye şişe ve cam fabrikaları", "şişecam", "sisecam"],
-        "official_domains": ["sisecam.com.tr", "sisecam.com"]
+        "aliases": [
+            "türkiye şişe ve cam fabrikaları a.ş.",
+            "türkiye şişe ve cam fabrikaları",
+            "şişecam",
+            "sisecam",
+        ],
+        "official_domains": ["sisecam.com.tr", "sisecam.com"],
     },
     "TCELL": {
         "company_id": "turkcell",
         "name": "Turkcell İletişim Hizmetleri A.Ş.",
-        "aliases": ["turkcell iletişim hizmetleri a.ş.", "turkcell iletişim hizmetleri", "turkcell a.ş.", "turkcell"],
-        "official_domains": ["turkcell.com.tr", "turkcell.com"]
+        "aliases": [
+            "turkcell iletişim hizmetleri a.ş.",
+            "turkcell iletişim hizmetleri",
+            "turkcell a.ş.",
+            "turkcell",
+        ],
+        "official_domains": ["turkcell.com.tr", "turkcell.com"],
     },
     "THYAO": {
         "company_id": "thyao",
         "name": "Türk Hava Yolları A.O.",
-        "aliases": ["türk hava yolları a.o.", "türk hava yolları anonim ortaklığı", "türk hava yolları", "turkish airlines", "thy"],
-        "official_domains": ["turkishairlines.com"]
+        "aliases": [
+            "türk hava yolları a.o.",
+            "türk hava yolları anonim ortaklığı",
+            "türk hava yolları",
+            "turkish airlines",
+            "thy",
+        ],
+        "official_domains": ["turkishairlines.com"],
     },
     "TUPRS": {
         "company_id": "tupras",
         "name": "Türkiye Petrol Rafinerileri A.Ş.",
-        "aliases": ["türkiye petrol rafinerileri a.ş.", "türkiye petrol rafinerileri", "tüpraş", "tupras"],
-        "official_domains": ["tupras.com.tr", "tupras.com"]
-    }
+        "aliases": [
+            "türkiye petrol rafinerileri a.ş.",
+            "türkiye petrol rafinerileri",
+            "tüpraş",
+            "tupras",
+        ],
+        "official_domains": ["tupras.com.tr", "tupras.com"],
+    },
 }
 
 
@@ -143,20 +196,41 @@ def extract_pdf_first_pages_text(pdf_path: Path, max_pages: int = 5) -> tuple[st
 def detect_language(text: str, filename: str) -> str:
     """Detect language ('tr' or 'en') from text and filename."""
     fn_lower = filename.lower()
-    if "__en" in fn_lower or "_en." in fn_lower or "english" in fn_lower or "sustainability_report" in fn_lower:
-        if "turkce" not in fn_lower and "yonetici_ozeti" not in fn_lower:
-            # Check text
-            tr_keywords = ["faaliyet", "raporu", "sürdürülebilirlik", "yönetim", "yılı", "özet"]
-            en_keywords = ["annual", "report", "sustainability", "integrated", "financial", "governance", "overview"]
-            tr_count = sum(1 for kw in tr_keywords if kw in text.lower())
-            en_count = sum(1 for kw in en_keywords if kw in text.lower())
-            if en_count > tr_count:
-                return "en"
-            elif tr_count > en_count:
-                return "tr"
+    if (
+        "__en" in fn_lower
+        or "_en." in fn_lower
+        or "english" in fn_lower
+        or "sustainability_report" in fn_lower
+    ) and "turkce" not in fn_lower and "yonetici_ozeti" not in fn_lower:
+        # Check text
+        tr_keywords = ["faaliyet", "raporu", "sürdürülebilirlik", "yönetim", "yılı", "özet"]
+        en_keywords = [
+            "annual",
+            "report",
+            "sustainability",
+            "integrated",
+            "financial",
+            "governance",
+            "overview",
+        ]
+        tr_count = sum(1 for kw in tr_keywords if kw in text.lower())
+        en_count = sum(1 for kw in en_keywords if kw in text.lower())
+        if en_count > tr_count:
+            return "en"
+        elif tr_count > en_count:
+            return "tr"
 
-    tr_score = len(re.findall(r"\b(faaliyet|raporu|sürdürülebilirlik|yılı|yonetici|özeti|bağımsız)\b", text.lower()))
-    en_score = len(re.findall(r"\b(annual|sustainability|report|integrated|financial|summary|statement)\b", text.lower()))
+    tr_score = len(
+        re.findall(
+            r"\b(faaliyet|raporu|sürdürülebilirlik|yılı|yonetici|özeti|bağımsız)\b", text.lower()
+        )
+    )
+    en_score = len(
+        re.findall(
+            r"\b(annual|sustainability|report|integrated|financial|summary|statement)\b",
+            text.lower(),
+        )
+    )
 
     return "en" if en_score > tr_score + 2 else "tr"
 
@@ -165,9 +239,20 @@ def detect_document_type(text: str, filename: str) -> str:
     """Detect document type (annual_report, sustainability_report, investor_presentation)."""
     combined = (filename + " " + text).lower()
 
-    if "presentation" in combined or "sunum" in combined or "yatırımcı sunumu" in combined or "investor presentation" in combined:
+    if (
+        "presentation" in combined
+        or "sunum" in combined
+        or "yatırımcı sunumu" in combined
+        or "investor presentation" in combined
+    ):
         return "investor_presentation"
-    elif "sustainability" in combined or "surdurulebilirlik" in combined or "sürdürülebilirlik" in combined or "tsrs" in combined or "cdp" in combined:
+    elif (
+        "sustainability" in combined
+        or "surdurulebilirlik" in combined
+        or "sürdürülebilirlik" in combined
+        or "tsrs" in combined
+        or "cdp" in combined
+    ):
         return "sustainability_report"
     else:
         return "annual_report"
@@ -184,6 +269,7 @@ def detect_report_year(text: str, filename: str, default_year: int = 2025) -> in
     text_years = re.findall(r"\b(200[0-9]|201[0-9]|202[0-6])\b", text)
     if text_years:
         from collections import Counter
+
         counts = Counter(int(y) for y in text_years)
         return counts.most_common(1)[0][0]
 
@@ -205,13 +291,11 @@ def normalize_dataset(raw_dir: Path = RAW_DIR, quarantine_dir: Path = QUARANTINE
             for f in d.glob("*.pdf"):
                 dest = canonical_path / f.name
                 shutil.move(f, dest)
-            try:
+            with contextlib.suppress(Exception):
                 d.rmdir()
-            except Exception:
-                pass
 
     # Collect all PDFs in canonical folders
-    all_pdfs = sorted(list(raw_dir.glob("*/*.pdf")))
+    all_pdfs = sorted(raw_dir.glob("*/*.pdf"))
     total_pdf_count = len(all_pdfs)
 
     print(f"Total PDFs found across canonical folders: {total_pdf_count}")
@@ -219,19 +303,21 @@ def normalize_dataset(raw_dir: Path = RAW_DIR, quarantine_dir: Path = QUARANTINE
     sha256_seen = {}
     duplicate_count = 0
     wrong_company_count = 0
-    verified_records = []
 
     # Map to track combination uniqueness: (ticker, year, doc_type, lang) -> file_info
     combo_tracker = {}
 
     for pdf_path in all_pdfs:
         ticker = pdf_path.parent.name
-        comp_spec = COMPANY_SPECS.get(ticker, {
-            "company_id": ticker.lower(),
-            "name": ticker,
-            "aliases": [ticker.lower()],
-            "official_domains": []
-        })
+        comp_spec = COMPANY_SPECS.get(
+            ticker,
+            {
+                "company_id": ticker.lower(),
+                "name": ticker,
+                "aliases": [ticker.lower()],
+                "official_domains": [],
+            },
+        )
 
         with open(pdf_path, "rb") as pf:
             pdf_bytes = pf.read()
@@ -257,11 +343,9 @@ def normalize_dataset(raw_dir: Path = RAW_DIR, quarantine_dir: Path = QUARANTINE
 
         # Company matching
         is_company_matched = False
-        matched_alias = None
         for alias in comp_spec["aliases"]:
             if alias.lower() in lower_text:
                 is_company_matched = True
-                matched_alias = alias
                 break
 
         if not is_company_matched:
@@ -288,7 +372,9 @@ def normalize_dataset(raw_dir: Path = RAW_DIR, quarantine_dir: Path = QUARANTINE
             "sha256": sha256_hash,
             "page_count": page_count,
             "file_size": len(pdf_bytes),
-            "official_domain": comp_spec["official_domains"][0] if comp_spec["official_domains"] else "unknown"
+            "official_domain": comp_spec["official_domains"][0]
+            if comp_spec["official_domains"]
+            else "unknown",
         }
 
         # 3. Enforce 1 PDF per (Company + Year + Document_Type + Language)
@@ -302,10 +388,14 @@ def normalize_dataset(raw_dir: Path = RAW_DIR, quarantine_dir: Path = QUARANTINE
                 if prev_path.exists():
                     shutil.move(prev_path, QUARANTINE_DUPLICATES / prev_path.name)
                 combo_tracker[combo_key] = file_info
-                print(f"[DUPLICATE COMBO REPLACED] {ticker} {year} {doc_type} {lang} -> Kept {filename}")
+                print(
+                    f"[DUPLICATE COMBO REPLACED] {ticker} {year} {doc_type} {lang} -> Kept {filename}"
+                )
             else:
                 shutil.move(pdf_path, QUARANTINE_DUPLICATES / filename)
-                print(f"[DUPLICATE COMBO EXCESS] {ticker}/{filename} -> Moved to quarantine/duplicates/")
+                print(
+                    f"[DUPLICATE COMBO EXCESS] {ticker}/{filename} -> Moved to quarantine/duplicates/"
+                )
         else:
             combo_tracker[combo_key] = file_info
 
@@ -335,7 +425,7 @@ def normalize_dataset(raw_dir: Path = RAW_DIR, quarantine_dir: Path = QUARANTINE
             "source_domain": info["official_domain"],
             "file_path": relative_file_path,
             "sha256": info["sha256"],
-            "validation_status": "verified"
+            "validation_status": "verified",
         }
         manifest_records.append(record)
 
@@ -369,7 +459,7 @@ def normalize_dataset(raw_dir: Path = RAW_DIR, quarantine_dir: Path = QUARANTINE
         "unique_pdf": unique_pdf_count,
         "duplicate_count": duplicate_count,
         "wrong_company_count": wrong_company_count,
-        "verified_reports": final_verified_list
+        "verified_reports": final_verified_list,
     }
 
 

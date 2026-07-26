@@ -12,14 +12,14 @@ Features:
 - Updates data/manifest.csv with metadata, file size, page count, SHA-256 hash, and status.
 """
 
-import os
-import sys
 import csv
-import time
-import yaml
 import hashlib
-import requests
+import sys
+import time
 from pathlib import Path
+
+import requests
+import yaml
 
 try:
     import fitz  # PyMuPDF
@@ -50,13 +50,13 @@ MANIFEST_FIELDNAMES = [
     "sha256",
     "page_count",
     "file_size",
-    "download_status"
+    "download_status",
 ]
 
 HTTP_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
     "Accept": "application/pdf,application/octet-stream,*/*",
-    "Accept-Language": "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7"
+    "Accept-Language": "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7",
 }
 
 
@@ -74,6 +74,7 @@ def get_page_count(pdf_bytes: bytes) -> int:
     if pypdf is not None:
         try:
             import io
+
             reader = pypdf.PdfReader(io.BytesIO(pdf_bytes))
             return len(reader.pages)
         except Exception:
@@ -82,7 +83,9 @@ def get_page_count(pdf_bytes: bytes) -> int:
     return 0
 
 
-def fetch_pdf_with_retry(session: requests.Session, url: str, max_retries: int = 3, backoff: float = 1.5):
+def fetch_pdf_with_retry(
+    session: requests.Session, url: str, max_retries: int = 3, backoff: float = 1.5
+):
     for attempt in range(1, max_retries + 1):
         try:
             response = session.get(url, timeout=15, allow_redirects=True)
@@ -90,7 +93,9 @@ def fetch_pdf_with_retry(session: requests.Session, url: str, max_retries: int =
                 return response
             elif response.status_code == 429:
                 wait_time = backoff * attempt
-                print(f"  [429 Rate Limit] Retrying in {wait_time:.1f}s (Attempt {attempt}/{max_retries})...")
+                print(
+                    f"  [429 Rate Limit] Retrying in {wait_time:.1f}s (Attempt {attempt}/{max_retries})..."
+                )
                 time.sleep(wait_time)
             else:
                 if attempt < max_retries:
@@ -110,7 +115,7 @@ def download_documents():
         print(f"Error: Config file not found at {CONFIG_PATH}")
         sys.exit(1)
 
-    with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+    with open(CONFIG_PATH, encoding="utf-8") as f:
         config = yaml.safe_load(f)
 
     companies = config.get("companies", [])
@@ -164,13 +169,19 @@ def download_documents():
                     page_count = get_page_count(pdf_data)
                     status = "success"
                     cached_count += 1
-                    print(f"[CACHE OK] [{ticker}] {doc_type} ({period}) -> {relative_local_path} ({file_size} bytes, {page_count} pages)")
+                    print(
+                        f"[CACHE OK] [{ticker}] {doc_type} ({period}) -> {relative_local_path} ({file_size} bytes, {page_count} pages)"
+                    )
 
             if status != "success":
                 print(f"Downloading [{ticker}] {doc_type} ({period}) from {source_url} ...")
                 try:
                     response = fetch_pdf_with_retry(session, source_url)
-                    if response and response.status_code == 200 and response.content.startswith(b"%PDF"):
+                    if (
+                        response
+                        and response.status_code == 200
+                        and response.content.startswith(b"%PDF")
+                    ):
                         pdf_data = response.content
                         file_size = len(pdf_data)
 
@@ -181,7 +192,9 @@ def download_documents():
                         page_count = get_page_count(pdf_data)
                         status = "success"
                         downloaded_count += 1
-                        print(f"  -> Saved: {relative_local_path} ({file_size} bytes, {page_count} pages)")
+                        print(
+                            f"  -> Saved: {relative_local_path} ({file_size} bytes, {page_count} pages)"
+                        )
                     else:
                         status_code = response.status_code if response else "No response"
                         print(f"  -> Download failed (HTTP status {status_code})")
@@ -203,7 +216,7 @@ def download_documents():
                 "sha256": sha256_hash,
                 "page_count": page_count,
                 "file_size": file_size,
-                "download_status": status
+                "download_status": status,
             }
             manifest_records.append(record)
 
@@ -213,7 +226,9 @@ def download_documents():
         writer.writerows(manifest_records)
 
     print(f"\nDownload completed. Manifest written to {MANIFEST_PATH}")
-    print(f"Summary: {cached_count} cached, {downloaded_count} newly downloaded, {failed_count} failed, total {len(manifest_records)} documents.")
+    print(
+        f"Summary: {cached_count} cached, {downloaded_count} newly downloaded, {failed_count} failed, total {len(manifest_records)} documents."
+    )
 
 
 if __name__ == "__main__":

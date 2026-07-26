@@ -7,15 +7,13 @@ and SHA-256 hash uniqueness. Quarantines invalid or mismatched files to data/qua
 and records metadata in data/report_manifest.jsonl.
 """
 
-import os
-import sys
+import hashlib
 import json
 import re
 import shutil
-import hashlib
-import yaml
 from pathlib import Path
-from urllib.parse import urlparse
+
+import yaml
 
 try:
     import fitz  # PyMuPDF
@@ -32,7 +30,7 @@ MANIFEST_JSONL = PROJECT_ROOT / "data" / "report_manifest.jsonl"
 def load_companies_config(config_path: Path = CONFIG_PATH):
     if not config_path.exists():
         raise FileNotFoundError(f"Config file not found at {config_path}")
-    with open(config_path, "r", encoding="utf-8") as f:
+    with open(config_path, encoding="utf-8") as f:
         cfg = yaml.safe_load(f)
     return cfg.get("companies", [])
 
@@ -61,18 +59,44 @@ def infer_document_type(filename: str, text: str) -> str:
     lower_fn = filename.lower()
     lower_text = text.lower()
 
-    if "sustainability" in lower_fn or "surdurulebilirlik" in lower_fn or "sürdürülebilirlik" in lower_text or "tsrs" in lower_text:
-        return "sustainability_report"
-    elif "presentation" in lower_fn or "sunum" in lower_fn or "yatırımcı sunumu" in lower_text or "investor presentation" in lower_text:
+    if (
+        "presentation" in lower_fn
+        or "sunum" in lower_fn
+        or "yatırımcı sunumu" in lower_text
+        or "investor presentation" in lower_text
+    ):
         return "investor_presentation"
-    elif "annual" in lower_fn or "faaliyet" in lower_fn or "entegre" in lower_fn or "faaliyet raporu" in lower_text or "annual report" in lower_text:
+    if (
+        "faaliyet" in lower_fn
+        or "annual" in lower_fn
+        or "entegre" in lower_fn
+        or "faaliyet raporu" in lower_text
+        or "annual report" in lower_text
+        or "entegre faaliyet" in lower_text
+        or "yıllık rapor" in lower_text
+    ):
+        if (
+            "sürdürülebilirlik raporu" in lower_fn or "sustainability report" in lower_fn
+        ) and "faaliyet" not in lower_fn:
+            return "sustainability_report"
         return "annual_report"
+    if (
+        "sustainability" in lower_fn
+        or "surdurulebilirlik" in lower_fn
+        or "sürdürülebilirlik raporu" in lower_text
+        or "sustainability report" in lower_text
+    ):
+        return "sustainability_report"
     return "annual_report"
 
 
-def infer_year_from_filename_or_text(filename: str, text: str, target_years: list[int] = [2023, 2024, 2025, 2026]) -> int:
+def infer_year_from_filename_or_text(
+    filename: str, text: str, target_years: list[int] = None
+) -> int:
     """Extract year from filename or text."""
     # Check filename first
+    if target_years is None:
+        target_years = [2023, 2024, 2025, 2026]
     for y in target_years:
         if str(y) in filename:
             return y
@@ -82,18 +106,19 @@ def infer_year_from_filename_or_text(filename: str, text: str, target_years: lis
     if found_years:
         # Return most frequent or latest year
         from collections import Counter
+
         counts = Counter(int(y) for y in found_years)
         return counts.most_common(1)[0][0]
 
     return 2025
 
 
-def validate_pdf_content(pdf_path: Path, company_cfg: dict) -> dict:
+def validate_pdf_content(pdf_path: Path, company_cfg: dict, min_pages: int = 1) -> dict:
     """Validates a single PDF against company aliases, year, and signature."""
-    company_id = company_cfg["id"]
+    company_cfg["id"]
     company_name = company_cfg["name"]
     aliases = company_cfg.get("aliases", [company_name])
-    official_domains = company_cfg.get("official_domains", [])
+    company_cfg.get("official_domains", [])
     expected_years = company_cfg.get("years", [2023, 2024, 2025, 2026])
 
     with open(pdf_path, "rb") as pf:
@@ -108,7 +133,7 @@ def validate_pdf_content(pdf_path: Path, company_cfg: dict) -> dict:
             "reason": "Invalid PDF magic header",
             "sha256": sha256_hash,
             "detected_company": None,
-            "year": 2025
+            "year": 2025,
         }
 
     if file_size < 10 * 1024:
@@ -117,11 +142,20 @@ def validate_pdf_content(pdf_path: Path, company_cfg: dict) -> dict:
             "reason": f"File size too small ({file_size} bytes)",
             "sha256": sha256_hash,
             "detected_company": None,
-            "year": 2025
+            "year": 2025,
         }
 
     text, page_count = extract_pdf_first_pages_text(pdf_path, max_pages=5)
     lower_text = text.lower()
+
+    if page_count < min_pages:
+        return {
+            "status": "quarantined",
+            "reason": f"Page count too low for annual report ({page_count} pages)",
+            "sha256": sha256_hash,
+            "detected_company": company_name,
+            "year": 2025,
+        }
 
     # Check for company name or alias
     is_alias_found = False
@@ -137,7 +171,9 @@ def validate_pdf_content(pdf_path: Path, company_cfg: dict) -> dict:
     lines = [line.strip() for line in text.splitlines() if line.strip()]
     for line in lines[:15]:
         line_upper = line.upper()
-        if ("A.Ş." in line_upper or "A.O." in line_upper or "KATILIM BANKASI" in line_upper) and not any(a.lower() in line.lower() for a in aliases):
+        if (
+            "A.Ş." in line_upper or "A.O." in line_upper or "KATILIM BANKASI" in line_upper
+        ) and not any(a.lower() in line.lower() for a in aliases):
             detected_other_company = line
             break
 
@@ -148,11 +184,13 @@ def validate_pdf_content(pdf_path: Path, company_cfg: dict) -> dict:
             "reason": reason,
             "sha256": sha256_hash,
             "detected_company": detected_other_company,
-            "year": infer_year_from_filename_or_text(pdf_path.name, text)
+            "year": infer_year_from_filename_or_text(pdf_path.name, text),
         }
 
     # Infer year
-    detected_year = infer_year_from_filename_or_text(pdf_path.name, text, target_years=expected_years)
+    detected_year = infer_year_from_filename_or_text(
+        pdf_path.name, text, target_years=expected_years
+    )
     year_present = str(detected_year) in lower_text or str(detected_year) in pdf_path.name
 
     status = "verified"
@@ -166,11 +204,13 @@ def validate_pdf_content(pdf_path: Path, company_cfg: dict) -> dict:
         "detected_company": company_name,
         "year": detected_year,
         "page_count": page_count,
-        "matched_alias": matched_alias
+        "matched_alias": matched_alias,
     }
 
 
-def validate_reports(raw_dir: Path = RAW_DIR, quarantine_dir: Path = QUARANTINE_DIR, config_path: Path = CONFIG_PATH) -> list[dict]:
+def validate_reports(
+    raw_dir: Path = RAW_DIR, quarantine_dir: Path = QUARANTINE_DIR, config_path: Path = CONFIG_PATH
+) -> list[dict]:
     """Audits raw PDF files, quarantines invalid ones, returns manifest records."""
     companies = load_companies_config(config_path)
     comp_map = {c["id"]: c for c in companies}
@@ -185,11 +225,11 @@ def validate_reports(raw_dir: Path = RAW_DIR, quarantine_dir: Path = QUARANTINE_
         "SISE": "sisecam",
         "TCELL": "turkcell",
         "THYAO": "thyao",
-        "TUPRS": "tupras"
+        "TUPRS": "tupras",
     }
 
     quarantine_dir.mkdir(parents=True, exist_ok=True)
-    pdf_files = sorted(list(raw_dir.glob("*/*.pdf")))
+    pdf_files = sorted(raw_dir.glob("*/*.pdf"))
 
     seen_hashes = {}
     manifest_records = []
@@ -210,7 +250,7 @@ def validate_reports(raw_dir: Path = RAW_DIR, quarantine_dir: Path = QUARANTINE_
                 "name": folder_name,
                 "aliases": [folder_name],
                 "official_domains": [],
-                "years": [2023, 2024, 2025]
+                "years": [2023, 2024, 2025],
             }
 
         res = validate_pdf_content(pdf_path, comp_cfg)
@@ -228,7 +268,11 @@ def validate_reports(raw_dir: Path = RAW_DIR, quarantine_dir: Path = QUARANTINE_
                 seen_hashes[sha256_hash] = filename
 
         doc_type = infer_document_type(filename, "")
-        source_domain = comp_cfg.get("official_domains", ["unknown"])[0] if comp_cfg.get("official_domains") else "unknown"
+        source_domain = (
+            comp_cfg.get("official_domains", ["unknown"])[0]
+            if comp_cfg.get("official_domains")
+            else "unknown"
+        )
 
         record = {
             "company_id": comp_id,
@@ -237,9 +281,11 @@ def validate_reports(raw_dir: Path = RAW_DIR, quarantine_dir: Path = QUARANTINE_
             "year": res["year"],
             "source_url": f"https://www.{source_domain}/reports/{filename}",
             "source_domain": source_domain,
-            "file_path": str(pdf_path.relative_to(PROJECT_ROOT)) if status != "quarantined" else f"data/quarantine/{comp_id}/{filename}",
+            "file_path": str(pdf_path.relative_to(PROJECT_ROOT))
+            if status != "quarantined"
+            else f"data/quarantine/{comp_id}/{filename}",
             "sha256": sha256_hash,
-            "validation_status": status
+            "validation_status": status,
         }
 
         if res.get("reason"):
@@ -256,7 +302,9 @@ def validate_reports(raw_dir: Path = RAW_DIR, quarantine_dir: Path = QUARANTINE_
             print(f"[QUARANTINED] {folder_name}/{filename} -> Reason: {res['reason']}")
         else:
             verified_count += 1
-            print(f"[{status.upper()}] {folder_name}/{filename} -> Company: '{comp_cfg['name']}', Year: {res['year']}")
+            print(
+                f"[{status.upper()}] {folder_name}/{filename} -> Company: '{comp_cfg['name']}', Year: {res['year']}"
+            )
 
     # Write manifest.jsonl
     with open(MANIFEST_JSONL, "w", encoding="utf-8") as f:

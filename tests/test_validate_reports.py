@@ -1,8 +1,12 @@
-import pytest
-import hashlib
 from pathlib import Path
+
 import fitz
-from scripts.validate_reports import validate_pdf_content, infer_year_from_filename_or_text, infer_document_type
+import pytest
+from scripts.validate_reports import (
+    infer_document_type,
+    infer_year_from_filename_or_text,
+    validate_pdf_content,
+)
 
 
 @pytest.fixture
@@ -12,14 +16,14 @@ def sample_company_cfg():
         "name": "Akbank T.A.Ş.",
         "aliases": ["Akbank", "Akbank T.A.Ş.", "Akbank T.A.S."],
         "official_domains": ["akbank.com", "akbankinvestorrelations.com"],
-        "years": [2023, 2024, 2025]
+        "years": [2023, 2024, 2025],
     }
 
 
 def create_dummy_pdf(tmp_path: Path, content_lines: list[str], filename: str) -> Path:
     pdf_path = tmp_path / filename
     doc = fitz.open()
-    for p in range(3):
+    for _p in range(3):
         page = doc.new_page()
         for i, line in enumerate(content_lines):
             page.insert_text((50, 50 + i * 20), line)
@@ -36,8 +40,11 @@ def create_dummy_pdf(tmp_path: Path, content_lines: list[str], filename: str) ->
 def test_validate_pdf_content_success(tmp_path, sample_company_cfg):
     pdf_path = create_dummy_pdf(
         tmp_path,
-        ["Akbank T.A.Ş. 2025 Yılı Entegre Faaliyet Raporu", "Finansal Tablolar ve Sorumluluk Beyanı"],
-        "Akbank_Faaliyet_Raporu_2025.pdf"
+        [
+            "Akbank T.A.Ş. 2025 Yılı Entegre Faaliyet Raporu",
+            "Finansal Tablolar ve Sorumluluk Beyanı",
+        ],
+        "Akbank_Faaliyet_Raporu_2025.pdf",
     )
 
     res = validate_pdf_content(pdf_path, sample_company_cfg)
@@ -51,7 +58,7 @@ def test_validate_pdf_content_rejection_mismatched_company(tmp_path, sample_comp
     pdf_path = create_dummy_pdf(
         tmp_path,
         ["ALBARAKA TÜRK KATILIM BANKASI A.Ş. 2025 Yılı Finansal Raporu", "Konsolide Bilanço"],
-        "AKBNK__annual_report__2025__tr__v1.pdf"
+        "AKBNK__annual_report__2025__tr__v1.pdf",
     )
 
     res = validate_pdf_content(pdf_path, sample_company_cfg)
@@ -62,7 +69,10 @@ def test_validate_pdf_content_rejection_mismatched_company(tmp_path, sample_comp
 def test_infer_document_type():
     assert infer_document_type("Akbank_Faaliyet_Raporu_2025.pdf", "") == "annual_report"
     assert infer_document_type("Akbank_Surdurulebilirlik_Raporu.pdf", "") == "sustainability_report"
-    assert infer_document_type("Akbank_Investor_Presentation_2026_Q1.pdf", "") == "investor_presentation"
+    assert (
+        infer_document_type("Akbank_Investor_Presentation_2026_Q1.pdf", "")
+        == "investor_presentation"
+    )
 
 
 def test_infer_year_from_filename():

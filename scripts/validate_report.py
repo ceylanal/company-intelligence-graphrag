@@ -7,14 +7,11 @@ checks official source domain, quarantines mismatched or invalid PDFs to data/qu
 and generates data/report_manifest.jsonl.
 """
 
-import os
-import sys
-import json
-import csv
-import shutil
 import hashlib
-from urllib.parse import urlparse
+import json
+import shutil
 from pathlib import Path
+from urllib.parse import urlparse
 
 try:
     import fitz  # PyMuPDF
@@ -31,63 +28,117 @@ COMPANY_MAP = {
     "AKBNK": {
         "company_id": "akbank",
         "expected_company": "Akbank T.A.Ş.",
-        "patterns": ["akbank t.a.ş.", "akbank t.a.s.", "akbank t. a. ş.", "akbank t.a.s", "akbank t. a. s.", "akbank t.a.ş", "akbank"],
-        "official_domains": ["akbank.com", "akbankinvestorrelations.com", "kap.org.tr"]
+        "patterns": [
+            "akbank t.a.ş.",
+            "akbank t.a.s.",
+            "akbank t. a. ş.",
+            "akbank t.a.s",
+            "akbank t. a. s.",
+            "akbank t.a.ş",
+            "akbank",
+        ],
+        "official_domains": ["akbank.com", "akbankinvestorrelations.com", "kap.org.tr"],
     },
     "ARCLK": {
         "company_id": "arcelik",
         "expected_company": "Arçelik A.Ş.",
         "patterns": ["arçelik a.ş.", "arcelik a.s.", "arçelik a. ş.", "arçelik", "arcelik", "beko"],
-        "official_domains": ["arcelikglobal.com", "arcelik.com.tr", "kap.org.tr"]
+        "official_domains": ["arcelikglobal.com", "arcelik.com.tr", "kap.org.tr"],
     },
     "ASELS": {
         "company_id": "aselsan",
         "expected_company": "Aselsan Elektronik Sanayi ve Ticaret A.Ş.",
-        "patterns": ["aselsan elektronik sanayi ve ticaret a.ş.", "aselsan elektronik sanayi", "aselsan a.ş.", "aselsan"],
-        "official_domains": ["aselsan.com.tr", "aselsan.com", "kap.org.tr"]
+        "patterns": [
+            "aselsan elektronik sanayi ve ticaret a.ş.",
+            "aselsan elektronik sanayi",
+            "aselsan a.ş.",
+            "aselsan",
+        ],
+        "official_domains": ["aselsan.com.tr", "aselsan.com", "kap.org.tr"],
     },
     "FROTO": {
         "company_id": "ford_otosan",
         "expected_company": "Ford Otomotiv Sanayi A.Ş.",
-        "patterns": ["ford otomotiv sanayi a.ş.", "ford otomotiv sanayi", "ford otosan a.ş.", "ford otosan"],
-        "official_domains": ["fordotosan.com.tr", "kap.org.tr"]
+        "patterns": [
+            "ford otomotiv sanayi a.ş.",
+            "ford otomotiv sanayi",
+            "ford otosan a.ş.",
+            "ford otosan",
+        ],
+        "official_domains": ["fordotosan.com.tr", "kap.org.tr"],
     },
     "KCHOL": {
         "company_id": "koc_holding",
         "expected_company": "Koç Holding A.Ş.",
-        "patterns": ["koç holding a.ş.", "koc holding a.s.", "koç holding a. ş.", "koç holding", "koc holding"],
-        "official_domains": ["koc.com.tr", "kap.org.tr"]
+        "patterns": [
+            "koç holding a.ş.",
+            "koc holding a.s.",
+            "koç holding a. ş.",
+            "koç holding",
+            "koc holding",
+        ],
+        "official_domains": ["koc.com.tr", "kap.org.tr"],
     },
     "MGROS": {
         "company_id": "migros",
         "expected_company": "Migros Ticaret A.Ş.",
-        "patterns": ["migros ticaret a.ş.", "migros ticaret a.s.", "migros ticaret a. ş.", "migros"],
-        "official_domains": ["migroskurumsal.com", "migros.com.tr", "migroskurumsalstr.blob.core.windows.net", "kap.org.tr"]
+        "patterns": [
+            "migros ticaret a.ş.",
+            "migros ticaret a.s.",
+            "migros ticaret a. ş.",
+            "migros",
+        ],
+        "official_domains": [
+            "migroskurumsal.com",
+            "migros.com.tr",
+            "migroskurumsalstr.blob.core.windows.net",
+            "kap.org.tr",
+        ],
     },
     "SISE": {
         "company_id": "sisecam",
         "expected_company": "Türkiye Şişe ve Cam Fabrikaları A.Ş.",
-        "patterns": ["türkiye şişe ve cam fabrikaları a.ş.", "türkiye şişe ve cam fabrikaları", "şişecam", "sisecam"],
-        "official_domains": ["sisecam.com.tr", "sisecam.com", "kap.org.tr"]
+        "patterns": [
+            "türkiye şişe ve cam fabrikaları a.ş.",
+            "türkiye şişe ve cam fabrikaları",
+            "şişecam",
+            "sisecam",
+        ],
+        "official_domains": ["sisecam.com.tr", "sisecam.com", "kap.org.tr"],
     },
     "TCELL": {
         "company_id": "turkcell",
         "expected_company": "Turkcell İletişim Hizmetleri A.Ş.",
-        "patterns": ["turkcell iletişim hizmetleri a.ş.", "turkcell iletişim hizmetleri", "turkcell a.ş.", "turkcell"],
-        "official_domains": ["turkcell.com.tr", "turkcell.com", "kap.org.tr"]
+        "patterns": [
+            "turkcell iletişim hizmetleri a.ş.",
+            "turkcell iletişim hizmetleri",
+            "turkcell a.ş.",
+            "turkcell",
+        ],
+        "official_domains": ["turkcell.com.tr", "turkcell.com", "kap.org.tr"],
     },
     "THYAO": {
         "company_id": "thyao",
         "expected_company": "Türk Hava Yolları A.O.",
-        "patterns": ["türk hava yolları a.o.", "türk hava yolları anonim ortaklığı", "türk hava yolları", "turkish airlines"],
-        "official_domains": ["turkishairlines.com", "kap.org.tr"]
+        "patterns": [
+            "türk hava yolları a.o.",
+            "türk hava yolları anonim ortaklığı",
+            "türk hava yolları",
+            "turkish airlines",
+        ],
+        "official_domains": ["turkishairlines.com", "kap.org.tr"],
     },
     "TUPRS": {
         "company_id": "tupras",
         "expected_company": "Türkiye Petrol Rafinerileri A.Ş.",
-        "patterns": ["türkiye petrol rafinerileri a.ş.", "türkiye petrol rafinerileri", "tüpraş", "tupras"],
-        "official_domains": ["tupras.com.tr", "tupras.com", "kap.org.tr"]
-    }
+        "patterns": [
+            "türkiye petrol rafinerileri a.ş.",
+            "türkiye petrol rafinerileri",
+            "tüpraş",
+            "tupras",
+        ],
+        "official_domains": ["tupras.com.tr", "tupras.com", "kap.org.tr"],
+    },
 }
 
 
@@ -134,7 +185,8 @@ def get_source_url_map():
     if CONFIG_PATH.exists():
         try:
             import yaml
-            with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+
+            with open(CONFIG_PATH, encoding="utf-8") as f:
                 cfg = yaml.safe_load(f)
             for c in cfg.get("companies", []):
                 t = c["ticker"]
@@ -154,7 +206,7 @@ def validate_all_reports(raw_dir: Path = RAW_DIR, quarantine_dir: Path = QUARANT
     manifest_records = []
     seen_hashes = {}
 
-    pdf_files = sorted(list(raw_dir.glob("*/*.pdf")))
+    pdf_files = sorted(raw_dir.glob("*/*.pdf"))
     print(f"Auditing {len(pdf_files)} PDF files in {raw_dir}...\n")
 
     verified_count = 0
@@ -174,12 +226,15 @@ def validate_all_reports(raw_dir: Path = RAW_DIR, quarantine_dir: Path = QUARANT
         except ValueError:
             report_year = 2025
 
-        comp_info = COMPANY_MAP.get(ticker, {
-            "company_id": ticker.lower(),
-            "expected_company": ticker,
-            "patterns": [ticker.lower()],
-            "official_domains": []
-        })
+        comp_info = COMPANY_MAP.get(
+            ticker,
+            {
+                "company_id": ticker.lower(),
+                "expected_company": ticker,
+                "patterns": [ticker.lower()],
+                "official_domains": [],
+            },
+        )
 
         with open(pdf_path, "rb") as pf:
             pdf_bytes = pf.read()
@@ -230,7 +285,9 @@ def validate_all_reports(raw_dir: Path = RAW_DIR, quarantine_dir: Path = QUARANT
         record = {
             "company_id": comp_info["company_id"],
             "expected_company": comp_info["expected_company"],
-            "detected_company": detected_comp or comp_info["expected_company"] if is_match else detected_comp,
+            "detected_company": detected_comp or comp_info["expected_company"]
+            if is_match
+            else detected_comp,
             "document_type": doc_type,
             "report_year": report_year,
             "source_url": source_url,
@@ -238,7 +295,7 @@ def validate_all_reports(raw_dir: Path = RAW_DIR, quarantine_dir: Path = QUARANT
             "official_source": is_official_domain,
             "validation_status": validation_status,
             "validation_evidence": evidence,
-            "sha256": sha256_hash
+            "sha256": sha256_hash,
         }
 
         if quarantine_reason:
@@ -255,7 +312,9 @@ def validate_all_reports(raw_dir: Path = RAW_DIR, quarantine_dir: Path = QUARANT
             print(f"[QUARANTINED] {ticker}/{filename} -> Reason: {quarantine_reason}")
         else:
             verified_count += 1
-            print(f"[VERIFIED] {ticker}/{filename} -> Company: '{comp_info['expected_company']}', Pages: {page_count}")
+            print(
+                f"[VERIFIED] {ticker}/{filename} -> Company: '{comp_info['expected_company']}', Pages: {page_count}"
+            )
 
     # Write manifest.jsonl
     with open(MANIFEST_JSONL, "w", encoding="utf-8") as f:
