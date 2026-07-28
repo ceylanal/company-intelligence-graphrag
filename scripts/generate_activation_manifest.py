@@ -39,15 +39,19 @@ def build_activation_manifest(config_path: Path = DEFAULT_CONFIG) -> dict[str, A
     run_manifest = build_run_manifest("production-activation")
     staging = contract["environments"]["staging"]
     production = contract["environments"]["production"]
-    short_sha = _git("rev-parse", "--short=12", "HEAD")
+    commit_sha = os.getenv("GITHUB_SHA") or _git("rev-parse", "HEAD")
+    short_sha = commit_sha[:12]
     image = contract["container"]["image"]
+    github_actions_status = os.getenv("ACTIVATION_GITHUB_ACTIONS_STATUS")
+    if not github_actions_status:
+        github_actions_status = "EXECUTING_IN_GITHUB_ACTIONS" if os.getenv("GITHUB_ACTIONS") == "true" else "NOT_VERIFIED"
 
     return {
         "schema_version": contract["schema_version"],
         "generated_at": datetime.now(UTC).isoformat(),
         "repository": contract["repository"],
         "git": {
-            "commit_sha": os.getenv("GITHUB_SHA") or _git("rev-parse", "HEAD"),
+            "commit_sha": commit_sha,
             "short_sha": short_sha,
             "branch": os.getenv("GITHUB_REF_NAME") or _git("branch", "--show-current"),
             "worktree_clean": not bool(_git("status", "--porcelain")),
@@ -97,7 +101,7 @@ def build_activation_manifest(config_path: Path = DEFAULT_CONFIG) -> dict[str, A
             "application_secrets": _presence(contract["application_secrets"]),
         },
         "activation_status": {
-            "github_actions": "BLOCKED_BY_UNPUSHED_WORKFLOWS",
+            "github_actions": github_actions_status,
             "ghcr": "GHCR_PUBLISH_PENDING",
             "cosign": "SIGNATURE_PENDING",
             "qdrant_cloud": "BLOCKED_BY_CREDENTIALS",
