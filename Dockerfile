@@ -1,6 +1,6 @@
 # Multi-stage production Dockerfile for Company Intelligence GraphRAG
 # Stage 1: Build virtual environment with uv
-FROM python:3.12-slim AS builder
+FROM python:3.14-slim AS builder
 
 # Set environment variables for build efficiency
 ENV PYTHONUNBUFFERED=1 \
@@ -21,7 +21,7 @@ COPY src/ ./src/
 RUN uv sync --frozen --no-dev
 
 # Stage 2: Runtime image
-FROM python:3.12-slim AS runtime
+FROM python:3.14-slim AS runtime
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
