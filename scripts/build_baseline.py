@@ -258,13 +258,14 @@ def build_baseline(raw_dir: Path = RAW_DIR, archive_dir: Path = ARCHIVE_DIR):
         if combo in candidates:
             prev_info = candidates[combo]
             # Preference: 'tr' over 'en', then larger page count
-            if file_info["language"] == "tr" and prev_info["language"] == "en" or (
-                file_info["language"] == prev_info["language"]
-                and file_info["page_count"] > prev_info["page_count"]
-            ):
-                shutil.move(
-                    prev_info["pdf_path"], archive_dir / ticker / prev_info["pdf_path"].name
+            if (
+                file_info["language"] == "tr"
+                and prev_info["language"] == "en"
+                or (
+                    file_info["language"] == prev_info["language"] and file_info["page_count"] > prev_info["page_count"]
                 )
+            ):
+                shutil.move(prev_info["pdf_path"], archive_dir / ticker / prev_info["pdf_path"].name)
                 candidates[combo] = file_info
             else:
                 shutil.move(pdf_path, archive_dir / ticker / pdf_path.name)
@@ -344,9 +345,7 @@ def build_baseline(raw_dir: Path = RAW_DIR, archive_dir: Path = ARCHIVE_DIR):
     print("\n" + "=" * 70)
     print("ANNUAL REPORT BASELINE BUILDING REPORT")
     print("=" * 70)
-    print(
-        f"Total Target PDFs Baseline: {missing_data['total_target_count']} (10 companies x 3 years)"
-    )
+    print(f"Total Target PDFs Baseline: {missing_data['total_target_count']} (10 companies x 3 years)")
     print(f"Total Verified Found     : {missing_data['total_found_count']}")
     print(f"Total Missing Targets    : {missing_data['total_missing_count']}")
     print("=" * 70)

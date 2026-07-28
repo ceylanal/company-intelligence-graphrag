@@ -69,10 +69,7 @@ def test_validate_pdf_content_rejection_mismatched_company(tmp_path, sample_comp
 def test_infer_document_type():
     assert infer_document_type("Akbank_Faaliyet_Raporu_2025.pdf", "") == "annual_report"
     assert infer_document_type("Akbank_Surdurulebilirlik_Raporu.pdf", "") == "sustainability_report"
-    assert (
-        infer_document_type("Akbank_Investor_Presentation_2026_Q1.pdf", "")
-        == "investor_presentation"
-    )
+    assert infer_document_type("Akbank_Investor_Presentation_2026_Q1.pdf", "") == "investor_presentation"
 
 
 def test_infer_year_from_filename():

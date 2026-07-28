@@ -1,0 +1,10 @@
+{
+  "status": "PASS",
+  "image_id": "sha256:ba5e831900d895571f2a8ddafae7739131a7653dc15bf5b33121915beafef8d8",
+  "platform": "linux/amd64",
+  "user": "appuser",
+  "size_bytes": 207589713,
+  "container_smoke": "PASS",
+  "unfixed_critical_findings": 0,
+  "sbom_packages": 230
+}

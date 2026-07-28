@@ -1,30 +1,85 @@
 services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: company-graphrag:latest
+    container_name: company_graphrag_api
+    profiles:
+      - core
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      # Keep container DNS separate from host-local .env values.
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      - QDRANT_URL=http://qdrant:6333
+      - QDRANT_API_KEY=
+      - QDRANT_COLLECTION_NAME=${QDRANT_COLLECTION_NAME:-company_documents}
+      - QDRANT_USE_CLOUD=false
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_HTTP_URL=http://neo4j:7474
+      - NEO4J_USERNAME=${COMPOSE_NEO4J_USERNAME:-neo4j}
+      - NEO4J_PASSWORD=${COMPOSE_NEO4J_PASSWORD:-change-me-local}
+      - NEO4J_DATABASE=${NEO4J_DATABASE:-neo4j}
+      - NEO4J_USE_CLOUD=false
+      - LLM_PROVIDER=${LLM_PROVIDER:-mock}
+      - LLM_MODEL=${LLM_MODEL:-mock-v1}
+      - LLM_API_KEY=${LLM_API_KEY:-}
+    mem_limit: 1g
+    cpus: 1.0
+    depends_on:
+      qdrant:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
   qdrant:
-    image: qdrant/qdrant:latest
+    image: qdrant/qdrant:v1.18.3
     container_name: qdrant
+    profiles:
+      - core
     restart: unless-stopped
     ports:
       - "127.0.0.1:6333:6333"
       - "127.0.0.1:6334:6334"
+    mem_limit: 1g
+    cpus: 1.0
     volumes:
       - qdrant_storage:/qdrant/storage
     healthcheck:
-      test: ["CMD-SHELL", "./qdrant --version || exit 0"]
+      test: ["CMD", "/qdrant/qdrant", "--version"]
       interval: 5s
       timeout: 5s
       retries: 5
       start_period: 5s
 
   neo4j:
-    image: neo4j:5-community
+    image: neo4j:5.26-community
     container_name: neo4j
+    profiles:
+      - core
     restart: unless-stopped
     ports:
       - "127.0.0.1:7474:7474"
       - "127.0.0.1:7687:7687"
+    mem_limit: 2g
+    cpus: 2.0
     environment:
-      - NEO4J_AUTH=${NEO4J_USERNAME:-neo4j}/${NEO4J_PASSWORD:-password}
+      - NEO4J_AUTH=${COMPOSE_NEO4J_USERNAME:-neo4j}/${COMPOSE_NEO4J_PASSWORD:-change-me-local}
       - NEO4J_PLUGINS=["apoc"]
+      - NEO4J_server_memory_heap_initial__size=256m
+      - NEO4J_server_memory_heap_max__size=768m
+      - NEO4J_server_memory_pagecache_size=512m
     volumes:
       - neo4j_data:/data
       - neo4j_logs:/logs
@@ -34,6 +89,28 @@ services:
       timeout: 5s
       retries: 10
       start_period: 10s
+
+  observability:
+    image: alpine:3.22
+    container_name: observability_placeholder
+    profiles:
+      - observability
+    restart: "no"
+    command: ["echo", "Observability profile placeholder for future local monitoring agents"]
+
+  locust:
+    image: locustio/locust:2.46.2
+    container_name: locust_load_test
+    profiles:
+      - load-test
+    restart: "no"
+    ports:
+      - "127.0.0.1:8089:8089"
+    mem_limit: 512m
+    cpus: 0.5
+    volumes:
+      - ./tests/load:/mnt/locust:ro
+    command: ["-f", "/mnt/locust/locustfile.py", "--host", "http://api:8000"]
 
 volumes:
   qdrant_storage:

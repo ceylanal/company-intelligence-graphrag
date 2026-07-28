@@ -1,0 +1,33 @@
+{
+  "collection": "company_documents",
+  "generated_at": "2026-07-28T21:58:01.513003+00:00",
+  "id_payload_checksum_sha256": "7ec2d5f537c205e73febf71978962bf1276f24a8aaaa445bd268feaa0b43fb01",
+  "optimizer_status": "ok",
+  "payload_schema": {},
+  "points_count": 25859,
+  "sample_point_ids": [
+    "00079b26-1ab6-5ec9-b170-4f2a9bb3dcb1",
+    "00082874-8b7b-5a23-91b7-8a5f99abf3ea",
+    "00095248-a1f1-58d0-8077-2e5ff7d8b4ac",
+    "000ec0b2-c231-5057-946c-5fef942eaa94",
+    "000f63c3-b656-5af7-9e23-1e8d43900dfe",
+    "000fb19f-a331-5872-8659-5ec6fd069a53",
+    "001222c4-cdf7-5f0f-93fa-5cce5fe9f752",
+    "001438ff-8b5e-53f8-ab41-fdd848883249",
+    "0017ddde-85db-50ac-82ec-675fbabceefd",
+    "0019f552-dd21-5d41-a98f-a3a9c9ba4841"
+  ],
+  "scanned_points_count": 25859,
+  "schema_version": "1.0.0",
+  "status": "green",
+  "storage_bytes": 150066163,
+  "vectors": {
+    "datatype": null,
+    "distance": "Cosine",
+    "hnsw_config": null,
+    "multivector_config": null,
+    "on_disk": null,
+    "quantization_config": null,
+    "size": 384
+  }
+}

@@ -197,11 +197,10 @@ def detect_language(text: str, filename: str) -> str:
     """Detect language ('tr' or 'en') from text and filename."""
     fn_lower = filename.lower()
     if (
-        "__en" in fn_lower
-        or "_en." in fn_lower
-        or "english" in fn_lower
-        or "sustainability_report" in fn_lower
-    ) and "turkce" not in fn_lower and "yonetici_ozeti" not in fn_lower:
+        ("__en" in fn_lower or "_en." in fn_lower or "english" in fn_lower or "sustainability_report" in fn_lower)
+        and "turkce" not in fn_lower
+        and "yonetici_ozeti" not in fn_lower
+    ):
         # Check text
         tr_keywords = ["faaliyet", "raporu", "sürdürülebilirlik", "yönetim", "yılı", "özet"]
         en_keywords = [
@@ -220,11 +219,7 @@ def detect_language(text: str, filename: str) -> str:
         elif tr_count > en_count:
             return "tr"
 
-    tr_score = len(
-        re.findall(
-            r"\b(faaliyet|raporu|sürdürülebilirlik|yılı|yonetici|özeti|bağımsız)\b", text.lower()
-        )
-    )
+    tr_score = len(re.findall(r"\b(faaliyet|raporu|sürdürülebilirlik|yılı|yonetici|özeti|bağımsız)\b", text.lower()))
     en_score = len(
         re.findall(
             r"\b(annual|sustainability|report|integrated|financial|summary|statement)\b",
@@ -372,9 +367,7 @@ def normalize_dataset(raw_dir: Path = RAW_DIR, quarantine_dir: Path = QUARANTINE
             "sha256": sha256_hash,
             "page_count": page_count,
             "file_size": len(pdf_bytes),
-            "official_domain": comp_spec["official_domains"][0]
-            if comp_spec["official_domains"]
-            else "unknown",
+            "official_domain": comp_spec["official_domains"][0] if comp_spec["official_domains"] else "unknown",
         }
 
         # 3. Enforce 1 PDF per (Company + Year + Document_Type + Language)
@@ -388,14 +381,10 @@ def normalize_dataset(raw_dir: Path = RAW_DIR, quarantine_dir: Path = QUARANTINE
                 if prev_path.exists():
                     shutil.move(prev_path, QUARANTINE_DUPLICATES / prev_path.name)
                 combo_tracker[combo_key] = file_info
-                print(
-                    f"[DUPLICATE COMBO REPLACED] {ticker} {year} {doc_type} {lang} -> Kept {filename}"
-                )
+                print(f"[DUPLICATE COMBO REPLACED] {ticker} {year} {doc_type} {lang} -> Kept {filename}")
             else:
                 shutil.move(pdf_path, QUARANTINE_DUPLICATES / filename)
-                print(
-                    f"[DUPLICATE COMBO EXCESS] {ticker}/{filename} -> Moved to quarantine/duplicates/"
-                )
+                print(f"[DUPLICATE COMBO EXCESS] {ticker}/{filename} -> Moved to quarantine/duplicates/")
         else:
             combo_tracker[combo_key] = file_info
 

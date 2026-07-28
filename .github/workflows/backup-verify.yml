@@ -1,0 +1,54 @@
+name: Backup Verification
+
+on:
+  workflow_dispatch:
+    inputs:
+      execute:
+        description: Connect to staging services and create inventories
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  verify-contract:
+    runs-on: ubuntu-latest
+    environment: staging
+    env:
+      QDRANT_URL: ${{ vars.QDRANT_URL }}
+      QDRANT_COLLECTION_NAME: ${{ vars.QDRANT_COLLECTION_NAME }}
+      QDRANT_API_KEY: ${{ secrets.QDRANT_API_KEY }}
+      NEO4J_URI: ${{ vars.NEO4J_URI }}
+      NEO4J_USERNAME: ${{ vars.NEO4J_USERNAME }}
+      NEO4J_DATABASE: ${{ vars.NEO4J_DATABASE }}
+      NEO4J_PASSWORD: ${{ secrets.NEO4J_PASSWORD }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+        with:
+          enable-cache: true
+      - run: uv sync --frozen
+      - name: Validate scripts
+        run: |
+          uv run python scripts/qdrant_activation.py --help
+          uv run python scripts/neo4j_activation.py --help
+      - name: Inventory staging databases
+        if: inputs.execute
+        run: |
+          uv run python scripts/qdrant_activation.py inventory \
+            --url "$QDRANT_URL" \
+            --collection "$QDRANT_COLLECTION_NAME" \
+            --output artifacts/production_activation/qdrant/cloud-inventory.json
+          uv run python scripts/neo4j_activation.py inventory \
+            --uri "$NEO4J_URI" \
+            --username "$NEO4J_USERNAME" \
+            --database "$NEO4J_DATABASE" \
+            --output artifacts/production_activation/neo4j/cloud-inventory.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: backup-verification
+          path: artifacts/production_activation/
+          if-no-files-found: warn

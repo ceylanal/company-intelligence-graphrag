@@ -1,0 +1,32 @@
+{
+  "annotations": {"list": []},
+  "editable": true,
+  "panels": [
+    {
+      "title": "HTTP request rate",
+      "type": "timeseries",
+      "targets": [{"expr": "sum(rate(company_graphrag_http_requests_total[5m])) by (status)"}]
+    },
+    {
+      "title": "HTTP p95 latency",
+      "type": "timeseries",
+      "targets": [{"expr": "histogram_quantile(0.95, sum(rate(company_graphrag_http_request_duration_seconds_bucket[5m])) by (le))"}]
+    },
+    {
+      "title": "Dependency p95 latency",
+      "type": "timeseries",
+      "targets": [{"expr": "histogram_quantile(0.95, sum(rate(company_graphrag_dependency_duration_seconds_bucket[5m])) by (le, dependency))"}]
+    },
+    {
+      "title": "Active research tasks",
+      "type": "stat",
+      "targets": [{"expr": "company_graphrag_active_research_tasks"}]
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["company-graphrag", "llmops"],
+  "templating": {"list": []},
+  "time": {"from": "now-6h", "to": "now"},
+  "title": "Company GraphRAG API",
+  "version": 1
+}

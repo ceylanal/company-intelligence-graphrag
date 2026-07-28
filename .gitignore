@@ -61,6 +61,16 @@ venv.bak/
 # Project data outputs & vector stores
 data/processed/
 data/vector_store/
+data/checkpoints/
+data/evals/cache/
+
+# Generated release/evaluation evidence (CI uploads these as artifacts)
+artifacts/evals/
+artifacts/run_manifests/
+artifacts/security/
+artifacts/production_activation/container/amd64-image-inspect.json
+artifacts/production_activation/container/sbom-*.json
+artifacts/production_activation/container/trivy-*.json
 
 # IDE & OS files
 .DS_Store

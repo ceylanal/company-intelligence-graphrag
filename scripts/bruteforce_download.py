@@ -273,11 +273,7 @@ def validate_pdf(filepath, ticker, year):
         # Language detection
         tr_kw = ["faaliyet raporu", "yönetim kurulu", "bağımsız denetim"]
         en_kw = ["annual report", "board of directors", "financial statements"]
-        lang = (
-            "tr"
-            if sum(1 for k in tr_kw if k in text_lower) >= sum(1 for k in en_kw if k in text_lower)
-            else "en"
-        )
+        lang = "tr" if sum(1 for k in tr_kw if k in text_lower) >= sum(1 for k in en_kw if k in text_lower) else "en"
 
         return True, "Validated OK", lang, page_count
     except Exception as e:

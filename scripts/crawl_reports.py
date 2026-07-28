@@ -96,9 +96,7 @@ def fetch_url(session: requests.Session, url: str, timeout: int = 15, max_retrie
     return None
 
 
-def search_kap_for_annual_report(
-    session: requests.Session, company_name: str, year: int
-) -> list[str]:
+def search_kap_for_annual_report(session: requests.Session, company_name: str, year: int) -> list[str]:
     """Fallback: Search KAP disclosures for official company annual report PDF links."""
     kap_pdf_urls = []
     try:
@@ -122,9 +120,7 @@ def search_kap_for_annual_report(
     return kap_pdf_urls
 
 
-def crawl_slot(
-    company_cfg: dict, target_year: int, dry_run: bool = False, max_candidates: int = 10
-):
+def crawl_slot(company_cfg: dict, target_year: int, dry_run: bool = False, max_candidates: int = 10):
     """Crawls official IR domains (and KAP fallback) for a single company-year target slot."""
     company_id = company_cfg["id"]
     company_cfg["name"]
@@ -175,9 +171,11 @@ def crawl_slot(
                     full_url = urljoin(su, href)
 
                     if full_url.lower().endswith(".pdf") or ".pdf" in full_url.lower():
-                        if is_annual_report_link(full_url, link_text) and (
-                            str(target_year) in full_url or str(target_year) in link_text
-                        ) and full_url not in candidate_urls:
+                        if (
+                            is_annual_report_link(full_url, link_text)
+                            and (str(target_year) in full_url or str(target_year) in link_text)
+                            and full_url not in candidate_urls
+                        ):
                             candidate_urls.append(full_url)
 
     # Limit to max_candidates
@@ -224,9 +222,7 @@ def crawl_slot(
         if status == "verified" and val_res.get("year") == target_year:
             # Detect language
             text = val_res.get("text", "")
-            lang = (
-                "en" if "annual report" in text.lower() and "faaliyet" not in text.lower() else "tr"
-            )
+            lang = "en" if "annual report" in text.lower() and "faaliyet" not in text.lower() else "tr"
 
             std_filename = f"{ticker}__{target_year}__annual_report__{lang}.pdf"
             final_path = ticker_dir / std_filename
@@ -265,12 +261,8 @@ def main():
         action="store_true",
         help="Crawl missing targets from data/missing_reports.json",
     )
-    parser.add_argument(
-        "--tickers", nargs="+", help="Filter target tickers (e.g. --tickers AKBNK THYAO)"
-    )
-    parser.add_argument(
-        "--dry-run", action="store_true", help="Discover candidate URLs without downloading"
-    )
+    parser.add_argument("--tickers", nargs="+", help="Filter target tickers (e.g. --tickers AKBNK THYAO)")
+    parser.add_argument("--dry-run", action="store_true", help="Discover candidate URLs without downloading")
     args = parser.parse_args()
 
     companies = load_companies_config()
@@ -293,14 +285,10 @@ def main():
 
         if args.tickers:
             filter_tickers = [t.upper() for t in args.tickers]
-            missing_targets = [
-                t for t in missing_targets if t["canonical_ticker"].upper() in filter_tickers
-            ]
+            missing_targets = [t for t in missing_targets if t["canonical_ticker"].upper() in filter_tickers]
 
         print("=" * 70)
-        print(
-            f"CONTROLLED PILOT MISSING-REPORT CRAWLER ({'DRY-RUN' if args.dry_run else 'EXECUTION'})"
-        )
+        print(f"CONTROLLED PILOT MISSING-REPORT CRAWLER ({'DRY-RUN' if args.dry_run else 'EXECUTION'})")
         print(f"Target Slots Count: {len(missing_targets)}")
         if args.tickers:
             print(f"Filtered Tickers  : {args.tickers}")

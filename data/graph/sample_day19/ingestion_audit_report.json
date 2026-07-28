@@ -1,0 +1,23 @@
+{
+  "total_input_entities": 4,
+  "total_input_relations": 3,
+  "ingested_nodes": 4,
+  "ingested_relations": 3,
+  "node_counts_by_label": {
+    "`Company`": 1,
+    "`FinancialMetric`": 1,
+    "`Date`": 1,
+    "`Person`": 1
+  },
+  "relation_counts_by_type": {
+    "`REPORTED_METRIC`": 1,
+    "`FOR_DATE`": 1,
+    "`HOLDS_ROLE_AT`": 1
+  },
+  "orphan_node_count": 0,
+  "duplicate_merge_attempts": 0,
+  "execution_time_ms": 0.79,
+  "status": "PASS",
+  "checkpoint_path": "/private/var/folders/zy/yx6bzmnj39zfjqv4vd2x76c80000gn/T/pytest-of-ceylanal/pytest-132/test_multi_hop_retriever_searc0/chk_mh.json",
+  "errors": []
+}

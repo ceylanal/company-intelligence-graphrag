@@ -1,0 +1,87 @@
+{
+  "accepted_entity_example": {
+    "canonical_name": "ASELSAN",
+    "confidence": 0.99,
+    "evidence_text": "ASELSAN",
+    "extraction_version": "day19-sample-v1",
+    "id": "company:ASELS",
+    "page_number": 19,
+    "properties": {
+      "id": "company:ASELS",
+      "name": "Aselsan Elektronik Sanayi ve Ticaret A.Ş.",
+      "source_chunk_id": "9ae32e0219bce5d6",
+      "source_page": 19,
+      "source_report_id": "report:ASELS__2024__annual_report__tr",
+      "ticker": "ASELS"
+    },
+    "source_chunk_id": "9ae32e0219bce5d6",
+    "source_file": "ASELS__2024__annual_report__tr.pdf",
+    "type": "Company"
+  },
+  "accepted_relation_example": {
+    "confidence": 0.97,
+    "evidence_text": "Toplam Hasılat (Milyon TL) 2024 120.206",
+    "extraction_version": "day19-sample-v1",
+    "id": "rel:reported_metric:dd75c3a81aef393e69325949",
+    "page_number": 19,
+    "properties": {
+      "id": "rel:reported_metric:dd75c3a81aef393e69325949",
+      "source_chunk_id": "9ae32e0219bce5d6",
+      "source_page": 19,
+      "source_report_id": "report:ASELS__2024__annual_report__tr"
+    },
+    "source_chunk_id": "9ae32e0219bce5d6",
+    "source_entity_id": "company:ASELS",
+    "source_file": "ASELS__2024__annual_report__tr.pdf",
+    "target_entity_id": "metric:ASELS:1850b44ae9a94e4790efee69",
+    "type": "REPORTED_METRIC"
+  },
+  "metrics": {
+    "average_confidence": 0.9771,
+    "cache_hits": 2,
+    "entity_count": 4,
+    "entity_type_distribution": {
+      "Company": 1,
+      "Date": 1,
+      "FinancialMetric": 1,
+      "Person": 1
+    },
+    "processed_chunks": 2,
+    "provider_calls": 0,
+    "rejected_count": 1,
+    "relation_count": 3,
+    "relation_type_distribution": {
+      "FOR_DATE": 1,
+      "HOLDS_ROLE_AT": 1,
+      "REPORTED_METRIC": 1
+    }
+  },
+  "rejection_example": {
+    "candidate": {
+      "canonical_name": "Kaynakta Olmayan Olay",
+      "confidence": 0.51,
+      "evidence_text": "Bu ifade kaynak chunk içinde bulunmuyor.",
+      "page_number": 19,
+      "properties": {
+        "company_id": "company:ASELS",
+        "date_id": "date:2024",
+        "event_type": "OTHER",
+        "normalized_title": "kaynakta_olmayan_olay",
+        "title": "Kaynakta Olmayan Olay"
+      },
+      "ref": "invalid_event",
+      "source_chunk_id": "9ae32e0219bce5d6",
+      "source_file": "ASELS__2024__annual_report__tr.pdf",
+      "type": "Event"
+    },
+    "candidate_index": 3,
+    "chunk_id": "9ae32e0219bce5d6",
+    "extraction_version": "day19-sample-v1",
+    "page_number": 19,
+    "reason": "evidence_text is not an exact substring of the source chunk.",
+    "reason_code": "EVIDENCE_NOT_IN_CHUNK",
+    "record_kind": "entity",
+    "rejection_id": "rejection:11278c83a665397e986a8c10",
+    "source_file": "ASELS__2024__annual_report__tr.pdf"
+  }
+}

@@ -90,9 +90,7 @@ def infer_document_type(filename: str, text: str) -> str:
     return "annual_report"
 
 
-def infer_year_from_filename_or_text(
-    filename: str, text: str, target_years: list[int] = None
-) -> int:
+def infer_year_from_filename_or_text(filename: str, text: str, target_years: list[int] = None) -> int:
     """Extract year from filename or text."""
     # Check filename first
     if target_years is None:
@@ -171,14 +169,16 @@ def validate_pdf_content(pdf_path: Path, company_cfg: dict, min_pages: int = 1) 
     lines = [line.strip() for line in text.splitlines() if line.strip()]
     for line in lines[:15]:
         line_upper = line.upper()
-        if (
-            "A.Ş." in line_upper or "A.O." in line_upper or "KATILIM BANKASI" in line_upper
-        ) and not any(a.lower() in line.lower() for a in aliases):
+        if ("A.Ş." in line_upper or "A.O." in line_upper or "KATILIM BANKASI" in line_upper) and not any(
+            a.lower() in line.lower() for a in aliases
+        ):
             detected_other_company = line
             break
 
     if not is_alias_found:
-        reason = f"Company mismatch. Expected '{company_name}', detected '{detected_other_company or 'Unknown Company'}'"
+        reason = (
+            f"Company mismatch. Expected '{company_name}', detected '{detected_other_company or 'Unknown Company'}'"
+        )
         return {
             "status": "quarantined",
             "reason": reason,
@@ -188,9 +188,7 @@ def validate_pdf_content(pdf_path: Path, company_cfg: dict, min_pages: int = 1) 
         }
 
     # Infer year
-    detected_year = infer_year_from_filename_or_text(
-        pdf_path.name, text, target_years=expected_years
-    )
+    detected_year = infer_year_from_filename_or_text(pdf_path.name, text, target_years=expected_years)
     year_present = str(detected_year) in lower_text or str(detected_year) in pdf_path.name
 
     status = "verified"
@@ -269,9 +267,7 @@ def validate_reports(
 
         doc_type = infer_document_type(filename, "")
         source_domain = (
-            comp_cfg.get("official_domains", ["unknown"])[0]
-            if comp_cfg.get("official_domains")
-            else "unknown"
+            comp_cfg.get("official_domains", ["unknown"])[0] if comp_cfg.get("official_domains") else "unknown"
         )
 
         record = {
@@ -302,9 +298,7 @@ def validate_reports(
             print(f"[QUARANTINED] {folder_name}/{filename} -> Reason: {res['reason']}")
         else:
             verified_count += 1
-            print(
-                f"[{status.upper()}] {folder_name}/{filename} -> Company: '{comp_cfg['name']}', Year: {res['year']}"
-            )
+            print(f"[{status.upper()}] {folder_name}/{filename} -> Company: '{comp_cfg['name']}', Year: {res['year']}")
 
     # Write manifest.jsonl
     with open(MANIFEST_JSONL, "w", encoding="utf-8") as f:

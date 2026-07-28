@@ -1,0 +1,30 @@
+# Central Evaluation Framework Configuration for Company Intelligence GraphRAG
+
+evaluation:
+  top_k_values: [1, 3, 5, 10]
+  mrr_max_rank: 10
+  default_split: "test"
+  score_thresholds:
+    recall_pass: 0.70
+    precision_pass: 0.50
+    mrr_pass: 0.60
+    token_f1_pass: 0.70
+    citation_precision_pass: 0.80
+
+metrics_weights:
+  retrieval_weight: 0.30
+  answer_weight: 0.30
+  citation_weight: 0.20
+  graph_weight: 0.20
+
+dataset:
+  default_sample_path: "data/evaluation/eval_samples.jsonl"
+  supported_splits: ["train", "val", "test"]
+  supported_question_types:
+    - "single_hop_fact"
+    - "multi_hop_graph"
+    - "comparison"
+    - "temporal"
+    - "aggregation"
+    - "unanswerable"
+    - "citation_verification"

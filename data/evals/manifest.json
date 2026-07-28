@@ -1,0 +1,19 @@
+{
+  "dataset_version": "1.0.0",
+  "total_samples": 108,
+  "dev_samples_count": 74,
+  "test_samples_count": 34,
+  "checksums": {
+    "golden_dev.jsonl": "f155df2c72c718bf6f8cc3fd42c7c157e1317742c61b34d296136c86a0be0ff3",
+    "golden_test.jsonl": "36a8d9be916e9f28a31853fa908677e42ad1da66fb48986a26e651890cb33655"
+  },
+  "question_type_distribution": {
+    "single_hop_fact": 25,
+    "multi_hop_graph": 19,
+    "comparison": 19,
+    "temporal": 10,
+    "aggregation": 10,
+    "unanswerable": 15,
+    "citation_verification": 10
+  }
+}

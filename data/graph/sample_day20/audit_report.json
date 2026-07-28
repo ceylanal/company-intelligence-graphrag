@@ -1,0 +1,128 @@
+{
+  "example_decisions": {
+    "DIFFERENT_ENTITY": {
+      "conflicts": [
+        "different_company_id",
+        "different_report_id"
+      ],
+      "context_similarity": 0.12,
+      "decision_id": "decision:26e5ba42d804bd1387e14987",
+      "entity_type": "Person",
+      "left_canonical_id": "person:ASELS:ahmet_akyol",
+      "left_entity_id": "sample:person:day20-person-typo",
+      "left_name": "Ahmet Akyal",
+      "left_record_key": "record:87f562e897ae191369b2cbaa",
+      "match_class": "DIFFERENT_ENTITY",
+      "merged": false,
+      "name_similarity": 0.9091,
+      "rationale": "Same/similar person name appears under different companies.",
+      "resolution_version": "day20-sample-v1",
+      "right_canonical_id": "person:KCHOL:ahmet_akyol",
+      "right_entity_id": "sample:person:day20-person-other-company",
+      "right_name": "Ahmet Akyol",
+      "right_record_key": "record:c7c014b06acc968e221e107e",
+      "signals": [
+        "evidence_context_overlap"
+      ]
+    },
+    "EXACT_MATCH": {
+      "conflicts": [],
+      "context_similarity": 1.0,
+      "decision_id": "decision:1622e3dae299492414224a7e",
+      "entity_type": "Product",
+      "left_canonical_id": "product:ASELS:siper_urun_1",
+      "left_entity_id": "sample:product:day20-product-1-alias",
+      "left_name": "SIPER Urun 1",
+      "left_record_key": "record:1a9ab90bbd32001ab011367a",
+      "match_class": "EXACT_MATCH",
+      "merged": true,
+      "name_similarity": 1.0,
+      "rationale": "Normalized product name and company scope are identical.",
+      "resolution_version": "day20-sample-v1",
+      "right_canonical_id": "product:ASELS:siper_urun_1",
+      "right_entity_id": "sample:product:day20-product-1",
+      "right_name": "SİPER Ürün-1",
+      "right_record_key": "record:54c69da7ac5b4f80e3edb52a",
+      "signals": [
+        "same_company_id",
+        "same_report_id",
+        "same_model_codes",
+        "evidence_context_overlap"
+      ]
+    },
+    "HIGH_CONFIDENCE_MATCH": {
+      "conflicts": [],
+      "context_similarity": 0.825,
+      "decision_id": "decision:446b9516c1064287f98c9952",
+      "entity_type": "Person",
+      "left_canonical_id": "person:ASELS:ahmet_akyol",
+      "left_entity_id": "person:ASELS:ahmet_akyol",
+      "left_name": "Ahmet Akyol",
+      "left_record_key": "record:3bfd04c8f316cbc66dedece3",
+      "match_class": "HIGH_CONFIDENCE_MATCH",
+      "merged": true,
+      "name_similarity": 0.9091,
+      "rationale": "Minor name variation occurs in the same company report.",
+      "resolution_version": "day20-sample-v1",
+      "right_canonical_id": "person:ASELS:ahmet_akyol",
+      "right_entity_id": "sample:person:day20-person-typo",
+      "right_name": "Ahmet Akyal",
+      "right_record_key": "record:87f562e897ae191369b2cbaa",
+      "signals": [
+        "same_company_id",
+        "same_report_id"
+      ]
+    },
+    "REVIEW_REQUIRED": {
+      "conflicts": [],
+      "context_similarity": 0.8222,
+      "decision_id": "decision:808b4d83c6614cb73e23d12d",
+      "entity_type": "FinancialMetric",
+      "left_canonical_id": "metric:ASELS:027994880096b342bab8e469",
+      "left_entity_id": "metric:ASELS:1850b44ae9a94e4790efee69",
+      "left_name": "Toplam Hasılat",
+      "left_record_key": "record:84bca7aa31e04970cdd6ef7c",
+      "match_class": "REVIEW_REQUIRED",
+      "merged": false,
+      "name_similarity": 1.0,
+      "rationale": "Same metric context has conflicting numeric values.",
+      "resolution_version": "day20-sample-v1",
+      "right_canonical_id": "metric:ASELS:027994880096b342bab8e469:variant:247dfb5ca0a3",
+      "right_entity_id": "sample:financialmetric:day20-metric-conflict",
+      "right_name": "Hasılat",
+      "right_record_key": "record:c7cb9fa36f1b4ce285b98c96",
+      "signals": [
+        "same_company_id",
+        "same_year",
+        "same_report_id",
+        "same_date_id",
+        "same_scope",
+        "same_unit"
+      ]
+    }
+  },
+  "metrics": {
+    "ambiguous_record_count": 7,
+    "canonical_entity_count": 11,
+    "canonical_type_distribution": {
+      "Company": 1,
+      "Date": 1,
+      "FinancialMetric": 3,
+      "Person": 2,
+      "Product": 3,
+      "Sector": 1
+    },
+    "different_entity_pairs": 8,
+    "exact_match_pairs": 5,
+    "high_confidence_match_pairs": 2,
+    "input_record_count": 17,
+    "merged_record_count": 6,
+    "review_required_pairs": 5
+  },
+  "scope": {
+    "controlled_variants": 13,
+    "day19_records": 4,
+    "full_dataset_processed": false,
+    "neo4j_written": false
+  }
+}

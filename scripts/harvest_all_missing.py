@@ -134,9 +134,7 @@ def test_and_save_pdf(url: str, ticker: str, target_year: int, comp_cfg: dict) -
                 except Exception:
                     pass
 
-            lang = (
-                "en" if "annual report" in text.lower() and "faaliyet" not in text.lower() else "tr"
-            )
+            lang = "en" if "annual report" in text.lower() and "faaliyet" not in text.lower() else "tr"
             final_name = f"{ticker}__{target_year}__annual_report__{lang}.pdf"
             final_path = ticker_dir / final_name
 
@@ -167,12 +165,7 @@ def process_target_slot(ticker: str, year: int, comp_cfg: dict) -> bool:
 
     aliases = comp_cfg.get("aliases", [comp_cfg["name"]])
     name = aliases[0]
-    domain = (
-        comp_cfg.get("official_domains", [""])[0]
-        .replace("https://", "")
-        .replace("http://", "")
-        .split("/")[0]
-    )
+    domain = comp_cfg.get("official_domains", [""])[0].replace("https://", "").replace("http://", "").split("/")[0]
 
     queries = [
         f'"{name}" "faaliyet raporu" {year} filetype:pdf',
@@ -236,9 +229,7 @@ def main():
 
     missing_targets = missing_data.get("missing_targets", [])
     print("=" * 70, flush=True)
-    print(
-        f"STARTING COMPREHENSIVE PDF HARVESTER FOR {len(missing_targets)} MISSING SLOTS", flush=True
-    )
+    print(f"STARTING COMPREHENSIVE PDF HARVESTER FOR {len(missing_targets)} MISSING SLOTS", flush=True)
     print("=" * 70 + "\n", flush=True)
 
     solved = 0

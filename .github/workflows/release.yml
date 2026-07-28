@@ -1,0 +1,122 @@
+name: Release Candidate
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish and keyless-sign the multi-platform image
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+  attestations: write
+
+jobs:
+  release-candidate:
+    runs-on: ubuntu-latest
+    environment: staging
+    timeout-minutes: 60
+    env:
+      ENVIRONMENT: test
+      LLM_PROVIDER: mock
+      TELEMETRY_ENABLED: "false"
+      IMAGE: ghcr.io/${{ github.repository }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+        with:
+          enable-cache: true
+      - run: uv sync --frozen
+      - run: make check version-check
+      - run: uv run company-graphrag eval-final-run
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - name: Build local gate image
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          load: true
+          push: false
+          tags: company-graphrag:release-gate
+          cache-from: type=gha
+      - run: ./scripts/container_smoke.sh company-graphrag:release-gate
+      - name: Trivy release gate
+        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # v0.33.1
+        with:
+          image-ref: company-graphrag:release-gate
+          format: json
+          output: trivy-release.json
+          severity: CRITICAL
+          exit-code: "1"
+          ignore-unfixed: true
+      - name: Release SBOM
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0
+        with:
+          image: company-graphrag:release-gate
+          format: spdx-json
+          output-file: sbom-release.spdx.json
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        if: inputs.publish
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: metadata
+        name: Compute immutable tags
+        shell: bash
+        run: |
+          short_sha="${GITHUB_SHA::12}"
+          version="$(uv run python -c 'from company_graphrag import __version__; print(__version__)')"
+          {
+            echo "short_sha=${short_sha}"
+            echo "version=${version}"
+            echo "tags<<EOF"
+            echo "${IMAGE}:sha-${short_sha}"
+            echo "${IMAGE}:${version}"
+            echo "${IMAGE}:staging"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+      - id: publish
+        name: Publish multi-platform image with provenance
+        if: inputs.publish
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.metadata.outputs.tags }}
+          provenance: mode=max
+          sbom: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Record digest
+        if: inputs.publish
+        env:
+          DIGEST: ${{ steps.publish.outputs.digest }}
+        run: printf '%s@%s\n' "$IMAGE" "$DIGEST" | tee image-digest.txt
+      - uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
+        if: inputs.publish
+      - name: Keyless sign and verify immutable digest
+        if: inputs.publish
+        env:
+          DIGEST: ${{ steps.publish.outputs.digest }}
+        run: |
+          cosign sign --yes "${IMAGE}@${DIGEST}"
+          cosign verify --output json \
+            --certificate-identity-regexp "^https://github.com/${GITHUB_REPOSITORY}/" \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            "${IMAGE}@${DIGEST}" > cosign-verify.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: release-candidate-evidence
+          path: |
+            artifacts/evals/final/
+            trivy-release.json
+            sbom-release.spdx.json
+            image-digest.txt
+            cosign-verify.json
+          if-no-files-found: warn

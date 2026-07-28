@@ -141,9 +141,7 @@ def test_and_save(url: str, ticker: str, target_year: int, cfg: dict) -> bool:
                 temp.unlink(missing_ok=True)
                 return False
 
-            lang = (
-                "en" if "annual report" in text.lower() and "faaliyet" not in text.lower() else "tr"
-            )
+            lang = "en" if "annual report" in text.lower() and "faaliyet" not in text.lower() else "tr"
             final_name = f"{ticker}__{target_year}__annual_report__{lang}.pdf"
             final_path = ticker_dir / final_name
             shutil.move(temp, final_path)
@@ -180,12 +178,7 @@ def main():
                 continue
 
         name = cfg["aliases"][0]
-        domain = (
-            cfg.get("official_domains", [""])[0]
-            .replace("https://", "")
-            .replace("http://", "")
-            .split("/")[0]
-        )
+        domain = cfg.get("official_domains", [""])[0].replace("https://", "").replace("http://", "").split("/")[0]
 
         queries = [
             f'site:{domain} "faaliyet raporu" {year} pdf',
@@ -203,10 +196,10 @@ def main():
                 u_lower = u.lower()
                 if ".pdf" in u_lower:
                     if (
-                        "sustainability" not in u_lower
-                        or "faaliyet" in u_lower
-                        or "entegre" in u_lower
-                    ) and "sunum" not in u_lower and "presentation" not in u_lower:
+                        ("sustainability" not in u_lower or "faaliyet" in u_lower or "entegre" in u_lower)
+                        and "sunum" not in u_lower
+                        and "presentation" not in u_lower
+                    ):
                         cand_urls.add(u)
                 else:
                     crawled = crawl_page_pdfs(u)

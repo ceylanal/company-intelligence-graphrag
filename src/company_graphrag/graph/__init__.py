@@ -1,1 +1,67 @@
-"""Graph subpackage for knowledge graph construction and Cypher queries."""
+"""Graph subpackage for Neo4j Knowledge Graph schema, ontology, and GraphRAG operations."""
+
+from company_graphrag.graph.extraction import (
+    EntityExtractionRecord,
+    ExtractionMetrics,
+    ExtractionProvider,
+    ExtractionRunResult,
+    GraphExtractionPipeline,
+    RejectionRecord,
+    RelationExtractionRecord,
+    StaticExtractionProvider,
+)
+from company_graphrag.graph.models import (
+    ChunkNode,
+    CompanyNode,
+    DateNode,
+    EventNode,
+    FinancialMetricNode,
+    GraphRelationship,
+    GraphSchemaConfig,
+    PersonNode,
+    ProductNode,
+    ReportNode,
+    SectorNode,
+    TimePeriodNode,
+)
+from company_graphrag.graph.resolution import (
+    AliasRecord,
+    CanonicalEntityRecord,
+    EntityResolutionPipeline,
+    MatchClass,
+    ResolutionDecisionRecord,
+    ResolutionMetrics,
+    ResolutionRunResult,
+)
+from company_graphrag.graph.schema import GraphSchemaManager
+
+__all__ = [
+    "GraphSchemaManager",
+    "GraphSchemaConfig",
+    "GraphExtractionPipeline",
+    "ExtractionProvider",
+    "StaticExtractionProvider",
+    "EntityExtractionRecord",
+    "RelationExtractionRecord",
+    "RejectionRecord",
+    "ExtractionMetrics",
+    "ExtractionRunResult",
+    "CompanyNode",
+    "ReportNode",
+    "ChunkNode",
+    "PersonNode",
+    "ProductNode",
+    "SectorNode",
+    "FinancialMetricNode",
+    "EventNode",
+    "DateNode",
+    "TimePeriodNode",
+    "GraphRelationship",
+    "EntityResolutionPipeline",
+    "MatchClass",
+    "CanonicalEntityRecord",
+    "AliasRecord",
+    "ResolutionDecisionRecord",
+    "ResolutionMetrics",
+    "ResolutionRunResult",
+]

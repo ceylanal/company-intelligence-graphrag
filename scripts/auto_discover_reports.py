@@ -126,9 +126,7 @@ def download_and_validate(url: str, ticker: str, target_year: int, comp_cfg: dic
 
         ticker_dir = RAW_DIR / ticker
         ticker_dir.mkdir(parents=True, exist_ok=True)
-        temp_filename = (
-            f"{ticker}__{target_year}__temp_{hashlib.md5(url.encode()).hexdigest()[:6]}.pdf"
-        )
+        temp_filename = f"{ticker}__{target_year}__temp_{hashlib.md5(url.encode()).hexdigest()[:6]}.pdf"
         temp_path = ticker_dir / temp_filename
         temp_path.write_bytes(content)
 
@@ -155,9 +153,7 @@ def download_and_validate(url: str, ticker: str, target_year: int, comp_cfg: dic
                 except Exception:
                     pass
 
-            lang = (
-                "en" if "annual report" in text.lower() and "faaliyet" not in text.lower() else "tr"
-            )
+            lang = "en" if "annual report" in text.lower() and "faaliyet" not in text.lower() else "tr"
             final_filename = f"{ticker}__{target_year}__annual_report__{lang}.pdf"
             final_path = ticker_dir / final_filename
 

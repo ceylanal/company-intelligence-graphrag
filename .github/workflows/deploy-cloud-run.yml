@@ -1,0 +1,54 @@
+name: Deploy Cloud Run Staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_digest:
+        description: Existing signed image digest (sha256:...)
+        required: true
+        type: string
+      execute:
+        description: Execute deployment (false validates configuration only)
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  staging:
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Validate immutable digest
+        env:
+          IMAGE_DIGEST: ${{ inputs.image_digest }}
+        run: test "${IMAGE_DIGEST#sha256:}" != "${IMAGE_DIGEST}" && test "${#IMAGE_DIGEST}" -eq 71
+      - uses: google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed # v2
+        if: inputs.execute
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@e427ad8a34f8676edf47cf7d7925499adf3eb74f # v2
+        if: inputs.execute
+      - name: Deploy guarded staging revision
+        if: inputs.execute
+        env:
+          GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+          GCP_REGION: ${{ vars.GCP_REGION }}
+          CLOUD_RUN_SERVICE: ${{ vars.CLOUD_RUN_SERVICE }}
+          ARTIFACT_REGISTRY_IMAGE: ${{ vars.ARTIFACT_REGISTRY_IMAGE }}
+          QDRANT_URL: ${{ vars.QDRANT_URL }}
+          QDRANT_COLLECTION_NAME: ${{ vars.QDRANT_COLLECTION_NAME }}
+          NEO4J_URI: ${{ vars.NEO4J_URI }}
+          NEO4J_USERNAME: ${{ vars.NEO4J_USERNAME }}
+          NEO4J_DATABASE: ${{ vars.NEO4J_DATABASE }}
+          LLM_PROVIDER: ${{ vars.LLM_PROVIDER }}
+          LLM_MODEL: ${{ vars.LLM_MODEL }}
+          OPIK_WORKSPACE: ${{ vars.OPIK_WORKSPACE }}
+          OTEL_EXPORTER_OTLP_ENDPOINT: ${{ vars.OTEL_EXPORTER_OTLP_ENDPOINT }}
+          IMAGE_DIGEST: ${{ inputs.image_digest }}
+        run: ./scripts/deploy_cloud_run.sh
