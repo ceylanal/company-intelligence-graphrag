@@ -695,7 +695,11 @@ def validate() -> None:
     console.print(table)
     console.print()
 
-    console.print("[bold green]✨ All Phase 1 final validation checks passed successfully![/bold green]\n")
+    if is_pass:
+        console.print("[bold green]✨ All Phase 1 final validation checks passed successfully![/bold green]\n")
+    else:
+        console.print("[bold red]Phase 1 validation failed. Inspect the audit table above.[/bold red]\n")
+        raise typer.Exit(code=1)
 
 
 @app.command(name="evaluate-vector-rag")

@@ -86,7 +86,9 @@ class HumanAnnotationBuilder:
         """Load dev answers, stratify across question types and modes, and shuffle with deterministic seed."""
         if not answer_results_path.exists():
             logger.warning("Answer results path not found, generating fallback items", path=str(answer_results_path))
-            return self._generate_fallback_items(sample_count=sample_count)
+            fallback_items = self._generate_fallback_items(sample_count=sample_count)
+            self._write_package(fallback_items)
+            return fallback_items
 
         # Load samples map
         sample_map: dict[str, Any] = {}
@@ -141,6 +143,11 @@ class HumanAnnotationBuilder:
                 )
             )
 
+        self._write_package(items)
+        return items
+
+    def _write_package(self, items: list[BlindedAnnotationItem]) -> None:
+        """Persist the full and pilot annotation packages."""
         self.output_dir.mkdir(parents=True, exist_ok=True)
         items_path = self.output_dir / "annotation_items.jsonl"
         with open(items_path, "w", encoding="utf-8") as f:
@@ -154,7 +161,6 @@ class HumanAnnotationBuilder:
                 f.write(item.model_dump_json() + "\n")
 
         logger.info("Built human annotation package", items_count=len(items), items_path=str(items_path))
-        return items
 
     def _generate_fallback_items(self, sample_count: int = 40) -> list[BlindedAnnotationItem]:
         """Generate fallback items if answer_results.jsonl is missing."""

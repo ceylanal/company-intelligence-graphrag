@@ -7,7 +7,7 @@ from company_graphrag.config import Settings, settings
 
 def test_settings_default_values() -> None:
     """Verify default values for Qdrant and Neo4j connections."""
-    assert settings.environment in ["development", "production", "testing"]
+    assert settings.environment in ["development", "test", "staging", "production"]
     assert settings.qdrant_host == "localhost"
     assert settings.qdrant_port == 6333
     assert settings.qdrant_url == "http://localhost:6333"

@@ -2,6 +2,7 @@
 
 from company_graphrag.retrieval.models import SearchHit
 from company_graphrag.retrieval.reranker import RetrievalReranker, compute_lexical_term_overlap
+from company_graphrag.retrieval.vector_retriever import VectorRetriever
 
 
 def create_hit(
@@ -53,13 +54,11 @@ def test_normal_reranking() -> None:
     assert reranked[0].lexical_score is not None
 
 
-def test_reranking_disabled_compatibility() -> None:
+def test_reranking_disabled_compatibility(seeded_vector_retriever: VectorRetriever) -> None:
     """Scenario 2: Reranking disabled preserves original vector order."""
-    from company_graphrag.embeddings import TextEmbeddingEncoder
     from company_graphrag.rag.pipeline import VectorRAGPipeline
-    from company_graphrag.retrieval import VectorRetriever
 
-    retriever = VectorRetriever(encoder=TextEmbeddingEncoder(mock=True))
+    retriever = seeded_vector_retriever
     pipeline = VectorRAGPipeline(retriever=retriever)
 
     res = pipeline.run("ASELSAN ciro", top_k=3, use_reranking=False)

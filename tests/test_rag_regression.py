@@ -12,9 +12,9 @@ from company_graphrag.retrieval.vector_retriever import VectorRetriever
 runner = CliRunner()
 
 
-def test_regression_company_filter() -> None:
+def test_regression_company_filter(seeded_vector_retriever: VectorRetriever) -> None:
     """Test company filter retention."""
-    retriever = VectorRetriever(encoder=TextEmbeddingEncoder(mock=True))
+    retriever = seeded_vector_retriever
     pipeline = VectorRAGPipeline(retriever=retriever)
 
     res = pipeline.run("gelir ve kârlılık", company="Aselsan Elektronik Sanayi ve Ticaret A.Ş.")
@@ -22,9 +22,9 @@ def test_regression_company_filter() -> None:
     pipeline.close()
 
 
-def test_regression_ticker_filter() -> None:
+def test_regression_ticker_filter(seeded_vector_retriever: VectorRetriever) -> None:
     """Test ticker filter retention."""
-    retriever = VectorRetriever(encoder=TextEmbeddingEncoder(mock=True))
+    retriever = seeded_vector_retriever
     pipeline = VectorRAGPipeline(retriever=retriever)
 
     res = pipeline.run("havacılık gelirleri", ticker="THYAO")
@@ -32,9 +32,9 @@ def test_regression_ticker_filter() -> None:
     pipeline.close()
 
 
-def test_regression_year_filter() -> None:
+def test_regression_year_filter(seeded_vector_retriever: VectorRetriever) -> None:
     """Test year filter retention."""
-    retriever = VectorRetriever(encoder=TextEmbeddingEncoder(mock=True))
+    retriever = seeded_vector_retriever
     pipeline = VectorRAGPipeline(retriever=retriever)
 
     res = pipeline.run("finansal sonuçlar", year=2024)
@@ -42,9 +42,9 @@ def test_regression_year_filter() -> None:
     pipeline.close()
 
 
-def test_regression_report_type_filter() -> None:
+def test_regression_report_type_filter(seeded_vector_retriever: VectorRetriever) -> None:
     """Test report_type filter retention."""
-    retriever = VectorRetriever(encoder=TextEmbeddingEncoder(mock=True))
+    retriever = seeded_vector_retriever
     pipeline = VectorRAGPipeline(retriever=retriever)
 
     res = pipeline.run("faaliyet dönemi", report_type="annual_report")
@@ -52,9 +52,9 @@ def test_regression_report_type_filter() -> None:
     pipeline.close()
 
 
-def test_regression_query_rewrite_off() -> None:
+def test_regression_query_rewrite_off(seeded_vector_retriever: VectorRetriever) -> None:
     """Test pipeline execution when query rewrite is disabled."""
-    retriever = VectorRetriever(encoder=TextEmbeddingEncoder(mock=True))
+    retriever = seeded_vector_retriever
     pipeline = VectorRAGPipeline(retriever=retriever)
 
     res = pipeline.run("ASELSAN 2024 cirosu", use_query_rewrite=False)
@@ -63,9 +63,9 @@ def test_regression_query_rewrite_off() -> None:
     pipeline.close()
 
 
-def test_regression_multi_query_off() -> None:
+def test_regression_multi_query_off(seeded_vector_retriever: VectorRetriever) -> None:
     """Test pipeline execution when multi-query is disabled."""
-    retriever = VectorRetriever(encoder=TextEmbeddingEncoder(mock=True))
+    retriever = seeded_vector_retriever
     pipeline = VectorRAGPipeline(retriever=retriever)
 
     res = pipeline.run("Turkcell 5G yatırımları", use_multi_query=False)
@@ -73,9 +73,9 @@ def test_regression_multi_query_off() -> None:
     pipeline.close()
 
 
-def test_regression_rerank_off() -> None:
+def test_regression_rerank_off(seeded_vector_retriever: VectorRetriever) -> None:
     """Test pipeline execution when reranking is disabled."""
-    retriever = VectorRetriever(encoder=TextEmbeddingEncoder(mock=True))
+    retriever = seeded_vector_retriever
     pipeline = VectorRAGPipeline(retriever=retriever)
 
     res = pipeline.run("Şişecam cam üretimi", use_reranking=False)
@@ -109,20 +109,20 @@ def test_regression_empty_query() -> None:
     pipeline.close()
 
 
-def test_regression_qdrant_fallback() -> None:
-    """Test fallback when Qdrant REST connection is unavailable."""
-    retriever = VectorRetriever(encoder=TextEmbeddingEncoder(mock=True))
+def test_regression_qdrant_fallback(seeded_vector_retriever: VectorRetriever) -> None:
+    """Test retrieval through the embedded Qdrant client used as the remote fallback."""
+    retriever = seeded_vector_retriever
     res = retriever.retrieve("Tüpraş kapasite", top_k=2)
 
     assert res.total_hits > 0
     retriever.close()
 
 
-def test_regression_llm_fallback() -> None:
+def test_regression_llm_fallback(seeded_vector_retriever: VectorRetriever) -> None:
     """Test fallback when external LLM API encounters error."""
     from company_graphrag.rag.generator import RAGGenerator
 
-    retriever = VectorRetriever(encoder=TextEmbeddingEncoder(mock=True))
+    retriever = seeded_vector_retriever
     generator = RAGGenerator(retriever=retriever, mock_mode=True)
 
     ans = generator.generate("ASELSAN 2024 kârı", ticker="ASELS")
@@ -131,9 +131,9 @@ def test_regression_llm_fallback() -> None:
     generator.close()
 
 
-def test_regression_insufficient_context() -> None:
+def test_regression_insufficient_context(seeded_vector_retriever: VectorRetriever) -> None:
     """Test unanswerable question context detection."""
-    retriever = VectorRetriever(encoder=TextEmbeddingEncoder(mock=True))
+    retriever = seeded_vector_retriever
     pipeline = VectorRAGPipeline(retriever=retriever)
 
     # Filtering by invalid ticker guarantees 0 hits!
