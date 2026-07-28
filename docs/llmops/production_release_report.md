@@ -4,12 +4,12 @@ Decision: `PRODUCTION_ACTIVATION_BLOCKED`
 
 | Area | Status | Evidence |
 |---|---|---|
-| GitHub Actions | PASS | Run `30404491347`: quality, secret-scan, container |
+| GitHub Actions | PASS | Main run `30405381168`; remediation PR run `30406163831` |
 | GitHub environments | PASS | `staging` branch policy; `production` main-only plus required reviewer |
 | GHCR | BLOCKED | No package digest has been published |
 | Cosign | BLOCKED | No remote digest exists to sign or verify |
-| Trivy | PASS | GitHub artifact: 0 critical and 0 total findings |
-| SBOM | PASS | GitHub artifact: SPDX 2.3, 230 packages |
+| Trivy | PASS | Scheduled run `30406188636`: 0 HIGH/CRITICAL; release run `30406190225`: 0 critical |
+| SBOM | PASS | Release artifact: SPDX 2.3, 230 packages |
 | Qdrant Cloud | BLOCKED | No cloud URL/key; local baseline is 25,859 points |
 | Neo4j Aura | BLOCKED | No Aura credentials and current source audit is empty |
 | Cloud Run staging | BLOCKED | No GCP CLI, identity, project, WIF, secrets, or signed digest |
@@ -25,18 +25,27 @@ Decision: `PRODUCTION_ACTIVATION_BLOCKED`
 
 ## Local evidence
 
-The Docker release candidate builds and runs as non-root, all core services become ready, dependency failure/recovery works, graceful shutdown exits 0, the local containerized Locust smoke has zero failures, and the current Trivy CRITICAL gate has zero unfixed findings.
+The Docker release candidate builds for Linux AMD64 and runs as `appuser`, all core services become ready, dependency failure/recovery works, graceful shutdown exits 0, and the current Trivy HIGH/CRITICAL gate has zero unfixed findings. The remediated image contains FastEmbed 0.8.0 and Pillow 12.3.0 while preserving the existing CLS-pooled 384-dimensional embedding contract.
 
 ## GitHub evidence
 
 - Pull request: https://github.com/ceylanal/company-intelligence-graphrag/pull/1
-- Successful CI run: https://github.com/ceylanal/company-intelligence-graphrag/actions/runs/30404491347
-- Tested commit: `87dfa10711f27c3cab02d9ee716eae853ce8375a`
-- Quality job: 259 tests, 0 failures, 0 errors, 80.23% line coverage
+- Main activation CI: https://github.com/ceylanal/company-intelligence-graphrag/actions/runs/30405381168
+- Security remediation pull request: https://github.com/ceylanal/company-intelligence-graphrag/pull/11
+- Remediation CI: https://github.com/ceylanal/company-intelligence-graphrag/actions/runs/30406163831
+- Tested remediation commit: `4449a11673bd7a1e0f6ecf35294792785e27d221`
+- Quality job: 260 tests, 0 failures, 0 errors, 80.25% line coverage
 - Container job: non-root, smoke, Compose readiness, dependency-failure readiness, Trivy, and SBOM all passed
-- Machine-readable record: `artifacts/production_activation/github_actions/successful-run.json`
+- Scheduled security run: https://github.com/ceylanal/company-intelligence-graphrag/actions/runs/30406188636
+- Scheduled security evidence: 0 HIGH/CRITICAL findings; Gitleaks scanned 23 commits with no leaks
+- Non-publishing release candidate: https://github.com/ceylanal/company-intelligence-graphrag/actions/runs/30406190225
+- Release evidence: image smoke passed, 0 critical findings, SPDX 2.3 SBOM with 230 packages
+- Final eval evidence: 34 samples, `CONDITIONAL PASS — KNOWN LIMITATIONS`; this is not a live staging baseline
+- Machine-readable records:
+  - `artifacts/production_activation/github_actions/successful-run.json`
+  - `artifacts/production_activation/github_actions/security-remediation-run.json`
 
-The release workflow and GHCR publish remain pending because the workflow is not on the default branch and merging or publishing has not been authorized.
+The release workflow is active on the default branch. The successful validation used `publish=false`; GHCR push, provenance publication, and keyless Cosign signing were intentionally skipped because publishing has not been authorized.
 
 ## Required manual account configuration
 

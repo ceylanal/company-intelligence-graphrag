@@ -165,7 +165,6 @@ class GraphRAGFinalAuditor:
 
         limitations = [
             "Local in-memory MockNeo4jStore is used when production Neo4j database is offline.",
-            "TextEmbeddingEncoder warns on fastembed version pooling changes, which is safely ignored.",
         ]
 
         recommendations = [

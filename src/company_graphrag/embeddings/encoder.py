@@ -8,6 +8,7 @@ logger = structlog.get_logger(__name__)
 
 DEFAULT_MODEL_NAME = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 DEFAULT_VECTOR_SIZE = 384
+LEGACY_CLS_MODEL_NAME = "company-graphrag/paraphrase-multilingual-MiniLM-L12-v2-cls"
 
 
 class TextEmbeddingEncoder:
@@ -26,9 +27,31 @@ class TextEmbeddingEncoder:
         """Initialize FastEmbed TextEmbedding model."""
         try:
             from fastembed import TextEmbedding
+            from fastembed.common.model_description import ModelSource, PoolingType
 
             logger.info("Initializing FastEmbed model", model_name=self.model_name)
-            self._model = TextEmbedding(model_name=self.model_name)
+            runtime_model_name = self.model_name
+            if self.model_name == DEFAULT_MODEL_NAME:
+                if not any(
+                    model["model"].lower() == LEGACY_CLS_MODEL_NAME.lower()
+                    for model in TextEmbedding.list_supported_models()
+                ):
+                    TextEmbedding.add_custom_model(
+                        model=LEGACY_CLS_MODEL_NAME,
+                        pooling=PoolingType.CLS,
+                        normalization=True,
+                        sources=ModelSource(
+                            hf="qdrant/paraphrase-multilingual-MiniLM-L12-v2-onnx-Q"
+                        ),
+                        dim=DEFAULT_VECTOR_SIZE,
+                        model_file="model_optimized.onnx",
+                        description="CLS-compatible multilingual embeddings for existing indexes.",
+                        license="apache-2.0",
+                        size_in_gb=0.22,
+                    )
+                runtime_model_name = LEGACY_CLS_MODEL_NAME
+
+            self._model = TextEmbedding(model_name=runtime_model_name)
             # Try embedding single dummy string to infer exact vector dimension
             dummy_generator = self._model.embed(["test"])
             first_vector = next(iter(dummy_generator))

@@ -12,6 +12,7 @@ from company_graphrag.embeddings import (
     embed_and_ingest_chunks,
     generate_deterministic_point_id,
 )
+from company_graphrag.embeddings.encoder import LEGACY_CLS_MODEL_NAME
 from company_graphrag.storage import get_qdrant_distance
 
 runner = CliRunner()
@@ -49,6 +50,30 @@ def test_mock_text_embedding_encoder() -> None:
     # Check unit length normalization
     norm = sum(x * x for x in vectors[0]) ** 0.5
     assert abs(norm - 1.0) < 1e-5
+
+
+def test_default_model_preserves_legacy_cls_pooling(monkeypatch) -> None:
+    """Use the CLS-compatible FastEmbed alias for existing Qdrant indexes."""
+    captured: dict[str, str] = {}
+
+    class FakeEmbedding:
+        @staticmethod
+        def list_supported_models() -> list[dict[str, str]]:
+            return [{"model": LEGACY_CLS_MODEL_NAME}]
+
+        def __init__(self, model_name: str) -> None:
+            captured["model_name"] = model_name
+
+        def embed(self, texts: list[str]):
+            return iter([[0.0] * 384 for _ in texts])
+
+    import fastembed
+
+    monkeypatch.setattr(fastembed, "TextEmbedding", FakeEmbedding)
+    encoder = TextEmbeddingEncoder()
+
+    assert encoder.vector_size == 384
+    assert captured["model_name"] == LEGACY_CLS_MODEL_NAME
 
 
 def test_embed_pipeline_dry_run(tmp_path: Path) -> None:
