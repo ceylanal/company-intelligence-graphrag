@@ -103,7 +103,7 @@ jobs:
         if: always()
         run: docker compose --profile core down --volumes
       - name: Trivy critical scan
-        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # v0.33.1
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: company-graphrag:ci
           format: json
@@ -113,7 +113,7 @@ jobs:
           ignore-unfixed: true
       - name: Trivy visibility report
         if: always()
-        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # v0.33.1
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: company-graphrag:ci
           format: table
