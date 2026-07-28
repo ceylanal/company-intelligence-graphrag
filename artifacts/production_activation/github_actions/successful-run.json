@@ -1,0 +1,67 @@
+{
+  "schema_version": "1.0.0",
+  "captured_at": "2026-07-28T22:31:23Z",
+  "repository": "ceylanal/company-intelligence-graphrag",
+  "pull_request": {
+    "number": 1,
+    "url": "https://github.com/ceylanal/company-intelligence-graphrag/pull/1"
+  },
+  "tested_head_sha": "87dfa10711f27c3cab02d9ee716eae853ce8375a",
+  "workflow_run": {
+    "id": 30404491347,
+    "name": "CI",
+    "conclusion": "success",
+    "url": "https://github.com/ceylanal/company-intelligence-graphrag/actions/runs/30404491347",
+    "jobs": {
+      "quality": {
+        "conclusion": "success",
+        "url": "https://github.com/ceylanal/company-intelligence-graphrag/actions/runs/30404491347/job/90426759510"
+      },
+      "secret-scan": {
+        "conclusion": "success",
+        "url": "https://github.com/ceylanal/company-intelligence-graphrag/actions/runs/30404491347/job/90426759524"
+      },
+      "container": {
+        "conclusion": "success",
+        "url": "https://github.com/ceylanal/company-intelligence-graphrag/actions/runs/30404491347/job/90427203366"
+      }
+    }
+  },
+  "quality_evidence": {
+    "tests": 259,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "coverage_line_rate": 0.8023,
+    "ruff": "PASS",
+    "mypy": "PASS",
+    "version_consistency": "PASS",
+    "representative_eval_regression": "PASS"
+  },
+  "container_evidence": {
+    "non_root": "PASS",
+    "smoke": "PASS",
+    "compose_readiness": "PASS",
+    "dependency_failure_readiness": "PASS",
+    "trivy_critical_findings": 0,
+    "trivy_total_findings": 0,
+    "sbom_format": "SPDX-2.3",
+    "sbom_packages": 230
+  },
+  "github_environments": {
+    "staging": {
+      "configured": true,
+      "allowed_branches": [
+        "main",
+        "codex/*"
+      ]
+    },
+    "production": {
+      "configured": true,
+      "required_reviewer": "ceylanal",
+      "allowed_branches": [
+        "main"
+      ]
+    }
+  }
+}

@@ -83,9 +83,7 @@ def get_page_count(pdf_bytes: bytes) -> int:
     return 0
 
 
-def fetch_pdf_with_retry(
-    session: requests.Session, url: str, max_retries: int = 3, backoff: float = 1.5
-):
+def fetch_pdf_with_retry(session: requests.Session, url: str, max_retries: int = 3, backoff: float = 1.5):
     for attempt in range(1, max_retries + 1):
         try:
             response = session.get(url, timeout=15, allow_redirects=True)
@@ -93,9 +91,7 @@ def fetch_pdf_with_retry(
                 return response
             elif response.status_code == 429:
                 wait_time = backoff * attempt
-                print(
-                    f"  [429 Rate Limit] Retrying in {wait_time:.1f}s (Attempt {attempt}/{max_retries})..."
-                )
+                print(f"  [429 Rate Limit] Retrying in {wait_time:.1f}s (Attempt {attempt}/{max_retries})...")
                 time.sleep(wait_time)
             else:
                 if attempt < max_retries:
@@ -177,11 +173,7 @@ def download_documents():
                 print(f"Downloading [{ticker}] {doc_type} ({period}) from {source_url} ...")
                 try:
                     response = fetch_pdf_with_retry(session, source_url)
-                    if (
-                        response
-                        and response.status_code == 200
-                        and response.content.startswith(b"%PDF")
-                    ):
+                    if response and response.status_code == 200 and response.content.startswith(b"%PDF"):
                         pdf_data = response.content
                         file_size = len(pdf_data)
 
@@ -192,9 +184,7 @@ def download_documents():
                         page_count = get_page_count(pdf_data)
                         status = "success"
                         downloaded_count += 1
-                        print(
-                            f"  -> Saved: {relative_local_path} ({file_size} bytes, {page_count} pages)"
-                        )
+                        print(f"  -> Saved: {relative_local_path} ({file_size} bytes, {page_count} pages)")
                     else:
                         status_code = response.status_code if response else "No response"
                         print(f"  -> Download failed (HTTP status {status_code})")

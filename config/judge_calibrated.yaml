@@ -1,0 +1,32 @@
+# Calibrated LLM-as-a-Judge Configuration & Thresholds (Day 32)
+judge_version: "1.1.0_calibrated"
+timestamp: "2026-07-28T04:00:00Z"
+
+acceptance_criteria:
+  min_pass_fail_agreement: 0.80      # Target: >= 80% pass/fail agreement with human
+  min_weighted_kappa: 0.60           # Target: >= 0.60 weighted kappa
+  min_spearman_correlation: 0.70     # Target: >= 0.70 Spearman correlation
+  max_citation_fp_rate: 0.15          # Target: <= 15% false positive rate on citations
+
+calibrated_thresholds:
+  pass_overall_score_min: 3.5
+  correctness_min: 3
+  faithfulness_min: 4
+  citation_support_min: 3
+
+dimensions:
+  correctness:
+    weight: 0.30
+    calibrated_bias_adjustment: 0.0  # Unbiased
+  completeness:
+    weight: 0.20
+    calibrated_bias_adjustment: 0.0
+  faithfulness:
+    weight: 0.25
+    calibrated_bias_adjustment: 0.0
+  relevance:
+    weight: 0.10
+    calibrated_bias_adjustment: 0.0
+  citation_support:
+    weight: 0.15
+    calibrated_bias_adjustment: 0.0

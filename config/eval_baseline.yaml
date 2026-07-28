@@ -1,0 +1,60 @@
+# Company Intelligence GraphRAG Evaluation Regression Baseline Configuration (Day 32)
+baseline_version: "1.0.0"
+timestamp: "2026-07-28T04:00:00Z"
+
+retrieval:
+  vector_only:
+    recall_at_5: 0.9000
+    precision_at_5: 0.7200
+    mrr: 0.8500
+    ndcg_at_5: 0.8800
+    source_recall: 0.9200
+  graph_only:
+    recall_at_5: 0.4000
+    precision_at_5: 0.3500
+    mrr: 0.4500
+    ndcg_at_5: 0.4200
+    source_recall: 1.0000
+  hybrid:
+    recall_at_5: 0.9500
+    precision_at_5: 0.7800
+    mrr: 0.9100
+    ndcg_at_5: 0.9200
+    source_recall: 1.0000
+
+answer:
+  vector_only:
+    exact_match: 0.0000
+    token_f1: 0.0660
+    numeric_accuracy: 0.5392
+    abstention_f1: 0.3333
+  graph_only:
+    exact_match: 0.0000
+    token_f1: 0.0147
+    numeric_accuracy: 0.4706
+    abstention_f1: 0.2565
+  hybrid:
+    exact_match: 0.0000
+    token_f1: 0.0660
+    numeric_accuracy: 0.5392
+    abstention_f1: 0.3333
+
+citation:
+  vector_only:
+    citation_precision: 0.9706
+    citation_recall: 0.3824
+    citation_coverage: 0.5784
+    chunk_support_accuracy: 1.0000
+  hybrid:
+    citation_precision: 0.9706
+    citation_recall: 0.3824
+    citation_coverage: 0.5784
+    chunk_support_accuracy: 1.0000
+
+tolerance:
+  allowed_metric_drop_pct: 0.05  # 5% max allowed metric drop
+  critical_metrics:
+    - "retrieval.hybrid.recall_at_5"
+    - "answer.hybrid.token_f1"
+    - "citation.hybrid.citation_precision"
+    - "citation.hybrid.chunk_support_accuracy"

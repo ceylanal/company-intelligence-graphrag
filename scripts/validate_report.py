@@ -266,7 +266,9 @@ def validate_all_reports(raw_dir: Path = RAW_DIR, quarantine_dir: Path = QUARANT
             quarantine_reason = f"File size too small ({file_size} bytes)"
         elif not is_match:
             validation_status = "quarantined"
-            quarantine_reason = f"Company mismatch. Expected '{comp_info['expected_company']}', detected '{detected_comp}'"
+            quarantine_reason = (
+                f"Company mismatch. Expected '{comp_info['expected_company']}', detected '{detected_comp}'"
+            )
         else:
             evidence.append("PDF text content company match")
             if is_official_domain:
@@ -285,9 +287,7 @@ def validate_all_reports(raw_dir: Path = RAW_DIR, quarantine_dir: Path = QUARANT
         record = {
             "company_id": comp_info["company_id"],
             "expected_company": comp_info["expected_company"],
-            "detected_company": detected_comp or comp_info["expected_company"]
-            if is_match
-            else detected_comp,
+            "detected_company": detected_comp or comp_info["expected_company"] if is_match else detected_comp,
             "document_type": doc_type,
             "report_year": report_year,
             "source_url": source_url,
@@ -312,9 +312,7 @@ def validate_all_reports(raw_dir: Path = RAW_DIR, quarantine_dir: Path = QUARANT
             print(f"[QUARANTINED] {ticker}/{filename} -> Reason: {quarantine_reason}")
         else:
             verified_count += 1
-            print(
-                f"[VERIFIED] {ticker}/{filename} -> Company: '{comp_info['expected_company']}', Pages: {page_count}"
-            )
+            print(f"[VERIFIED] {ticker}/{filename} -> Company: '{comp_info['expected_company']}', Pages: {page_count}")
 
     # Write manifest.jsonl
     with open(MANIFEST_JSONL, "w", encoding="utf-8") as f:

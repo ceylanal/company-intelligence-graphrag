@@ -1,0 +1,17 @@
+{
+  "completed_entity_ids": [
+    "company:ASELS",
+    "date:2024",
+    "metric:ASELS:1850b44ae9a94e4790efee69",
+    "person:ASELS:ahmet_akyol"
+  ],
+  "completed_relation_ids": [
+    "rel:for_date:000eb505d177e46715b4efd0",
+    "rel:holds_role_at:8772a3f4e3e5030e12f1f7ab",
+    "rel:reported_metric:dd75c3a81aef393e69325949"
+  ],
+  "completed_batches": [
+    1
+  ],
+  "last_updated_at": "2026-07-27T10:02:09.475575+00:00"
+}

@@ -1,0 +1,1112 @@
+version: "1.0.0"
+domain: "Company intelligence from annual and integrated reports"
+description: >-
+  A deliberately small, citation-first property graph for the first GraphRAG
+  release. Extracted facts are traceable to a report, chunk, and PDF page.
+
+source_contract:
+  report_manifest:
+    document_id: "Canonical filename stem: {TICKER}__{YEAR}__{REPORT_TYPE}__{LANGUAGE}"
+    source_file: "report_manifest.file_path basename or ParsedPage.filename"
+    source_url: "report_manifest.source_url"
+    sha256: "report_manifest.sha256 or ParsedPage.file_hash"
+    validation_status: "report_manifest.validation_status"
+  chunk_metadata:
+    chunk_id: "ChunkRecord.chunk_id"
+    document_id: "ChunkRecord.document_id"
+    company: "ChunkRecord.company"
+    ticker: "ChunkRecord.ticker"
+    year: "ChunkRecord.year"
+    report_type: "ChunkRecord.report_type"
+    language: "ChunkRecord.language"
+    page_number: "ChunkRecord.page_number (1-based PDF page)"
+    chunk_index: "ChunkRecord.chunk_index (0-based within document)"
+    token_count: "ChunkRecord.token_count"
+    text: "ChunkRecord.text; may remain in Qdrant instead of Neo4j"
+    source_file: "ChunkRecord.source_file"
+  extraction_rules:
+    - "Do not persist an extracted fact without source_report_id, source_chunk_id, and source_page."
+    - "source_page is the 1-based PDF page from ChunkRecord.page_number, not a printed page label."
+    - "Keep conflicting or restated observations as separate FinancialMetric nodes when their source_report_id differs."
+    - "Confidence is extraction metadata only; it never replaces a source citation."
+
+node_types:
+  Company:
+    description: "A listed company or company entity named in a report."
+    primary_key: "id"
+    id_generation:
+      strategy: "template"
+      pattern: "company:{TICKER}"
+      inputs: ["ticker"]
+      normalization: "Trim and uppercase the canonical exchange ticker."
+      example: "company:ASELS"
+    required_properties:
+      id:
+        type: "STRING"
+        description: "Stable graph identifier."
+        pattern: '^company:[A-Z0-9._-]+$'
+      name:
+        type: "STRING"
+        description: "Preferred display name."
+      ticker:
+        type: "STRING"
+        description: "Canonical exchange ticker."
+        pattern: '^[A-Z0-9._-]{2,12}$'
+    optional_properties:
+      legal_name:
+        type: "STRING"
+        description: "Registered legal name."
+      aliases:
+        type: "STRING_LIST"
+        description: "Known alternative names."
+      country:
+        type: "STRING"
+        description: "Country of incorporation."
+      website:
+        type: "STRING"
+        description: "Official company website."
+      source_report_id:
+        type: "STRING"
+        description: "Report that supplied this canonical record, when applicable."
+      source_chunk_id:
+        type: "STRING"
+        description: "Chunk that supplied this canonical record, when applicable."
+      source_page:
+        type: "INTEGER"
+        description: "1-based source PDF page, when applicable."
+        minimum: 1
+    provenance:
+      mode: "CANONICAL"
+      required_fields: []
+      optional_fields: ["source_report_id", "source_chunk_id", "source_page"]
+      description: "Usually seeded from companies.yaml; report evidence is optional on the node."
+
+  Report:
+    description: "A validated annual, integrated, sustainability, or periodic company report."
+    primary_key: "id"
+    id_generation:
+      strategy: "template"
+      pattern: "report:{document_id}"
+      inputs: ["document_id"]
+      normalization: "Use the exact canonical filename stem, including language."
+      example: "report:ASELS__2024__annual_report__tr"
+    required_properties:
+      id:
+        type: "STRING"
+        description: "Stable graph identifier."
+        pattern: '^report:[A-Z0-9._-]+__\d{4}__[a-z0-9_]+__[a-z]{2}(-[A-Z]{2})?$'
+      document_id:
+        type: "STRING"
+        description: "Canonical filename stem used by ParsedPage and ChunkRecord."
+      ticker:
+        type: "STRING"
+        description: "Publisher ticker."
+        pattern: '^[A-Z0-9._-]{2,12}$'
+      year:
+        type: "INTEGER"
+        description: "Report year."
+        minimum: 1900
+        maximum: 2100
+      report_type:
+        type: "STRING"
+        description: "Normalized document type."
+        allowed_values:
+          - "annual_report"
+          - "integrated_report"
+          - "sustainability_report"
+          - "investor_presentation"
+          - "financial_statement"
+      language:
+        type: "STRING"
+        description: "BCP-47-style report language code."
+        pattern: '^[a-z]{2}(-[A-Z]{2})?$'
+      source_file:
+        type: "STRING"
+        description: "Source PDF filename or repository-relative path."
+      sha256:
+        type: "STRING"
+        description: "SHA-256 digest of the source PDF."
+        pattern: '^[0-9a-f]{64}$'
+    optional_properties:
+      source_url:
+        type: "STRING"
+        description: "Official download URL recorded in the manifest."
+      source_domain:
+        type: "STRING"
+        description: "Source host recorded during collection."
+      total_pages:
+        type: "INTEGER"
+        description: "PDF page count."
+        minimum: 1
+      validation_status:
+        type: "STRING"
+        description: "Dataset validation status."
+        allowed_values: ["verified", "pending", "quarantined"]
+    provenance:
+      mode: "DOCUMENT"
+      required_fields: ["source_file", "sha256"]
+      optional_fields: ["source_url", "source_domain", "validation_status"]
+      description: "Document identity is backed by the source path and immutable file hash."
+
+  Chunk:
+    description: "A citation anchor aligned with the existing vector-store chunk payload."
+    primary_key: "id"
+    id_generation:
+      strategy: "template"
+      pattern: "chunk:{chunk_id}"
+      inputs: ["chunk_id"]
+      normalization: "Lowercase the existing deterministic 16-character chunk_id."
+      example: "chunk:9ae32e0219bce5d6"
+    required_properties:
+      id:
+        type: "STRING"
+        description: "Stable graph identifier."
+        pattern: '^chunk:[0-9a-f]{16}$'
+      chunk_id:
+        type: "STRING"
+        description: "Existing deterministic ChunkRecord identifier."
+        pattern: '^[0-9a-f]{16}$'
+      report_id:
+        type: "STRING"
+        description: "Derived Report.id for direct graph loading."
+        pattern: '^report:.+$'
+      document_id:
+        type: "STRING"
+        description: "Existing ChunkRecord document identifier."
+      source_file:
+        type: "STRING"
+        description: "Existing ChunkRecord source PDF filename."
+      page_number:
+        type: "INTEGER"
+        description: "1-based PDF page where the chunk starts."
+        minimum: 1
+      chunk_index:
+        type: "INTEGER"
+        description: "0-based chunk position within the report."
+        minimum: 0
+    optional_properties:
+      company:
+        type: "STRING"
+        description: "Denormalized ChunkRecord company display name."
+      ticker:
+        type: "STRING"
+        description: "Denormalized ChunkRecord ticker."
+      year:
+        type: "INTEGER"
+        description: "Denormalized ChunkRecord report year."
+        minimum: 1900
+        maximum: 2100
+      report_type:
+        type: "STRING"
+        description: "Denormalized ChunkRecord report type."
+      language:
+        type: "STRING"
+        description: "Denormalized ChunkRecord language."
+      token_count:
+        type: "INTEGER"
+        description: "Chunk token count."
+        minimum: 0
+      text:
+        type: "STRING"
+        description: "Optional text body; Qdrant remains the primary full-text store."
+    provenance:
+      mode: "CHUNK"
+      required_fields: ["report_id", "document_id", "source_file", "page_number", "chunk_index"]
+      optional_fields: ["ticker", "year", "report_type", "language"]
+      description: "Chunk IDs and citation coordinates map directly to the current chunk JSONL payload."
+
+  Person:
+    description: "A company-scoped executive, director, or other key person mention."
+    primary_key: "id"
+    id_generation:
+      strategy: "template"
+      pattern: "person:{TICKER}:{normalized_name}"
+      inputs: ["company_id", "normalized_name"]
+      normalization: "ASCII snake-case name; scope by company to avoid unsafe global person merges."
+      example: "person:ASELS:ahmet_akyol"
+    required_properties:
+      id:
+        type: "STRING"
+        description: "Stable company-scoped graph identifier."
+        pattern: '^person:[A-Z0-9._-]+:[a-z0-9_]+$'
+      name:
+        type: "STRING"
+        description: "Name as shown in the report."
+      normalized_name:
+        type: "STRING"
+        description: "ASCII snake-case form used for identity."
+        pattern: '^[a-z0-9_]+$'
+      company_id:
+        type: "STRING"
+        description: "Company scope used for conservative entity resolution."
+        pattern: '^company:.+$'
+      source_report_id:
+        type: "STRING"
+        description: "Report containing the person mention."
+      source_chunk_id:
+        type: "STRING"
+        description: "Chunk containing the person mention."
+      source_page:
+        type: "INTEGER"
+        description: "1-based source PDF page."
+        minimum: 1
+    optional_properties:
+      aliases:
+        type: "STRING_LIST"
+        description: "Alternative renderings found in the same company corpus."
+    provenance:
+      mode: "CHUNK"
+      required_fields: ["source_report_id", "source_chunk_id", "source_page"]
+      optional_fields: []
+      description: "Every person mention must be grounded; role and tenure belong on HOLDS_ROLE_AT."
+
+  Product:
+    description: "A company-scoped product, service, platform, or brand."
+    primary_key: "id"
+    id_generation:
+      strategy: "template"
+      pattern: "product:{TICKER}:{normalized_name}"
+      inputs: ["company_id", "normalized_name"]
+      normalization: "ASCII snake-case product name scoped by owning or offering company."
+      example: "product:ASELS:siper_urun_1"
+    required_properties:
+      id:
+        type: "STRING"
+        description: "Stable company-scoped graph identifier."
+        pattern: '^product:[A-Z0-9._-]+:[a-z0-9_]+$'
+      name:
+        type: "STRING"
+        description: "Product or service display name."
+      normalized_name:
+        type: "STRING"
+        description: "ASCII snake-case form used for identity."
+        pattern: '^[a-z0-9_]+$'
+      company_id:
+        type: "STRING"
+        description: "Company scope used for conservative entity resolution."
+        pattern: '^company:.+$'
+      source_report_id:
+        type: "STRING"
+        description: "Report containing the product mention."
+      source_chunk_id:
+        type: "STRING"
+        description: "Chunk containing the product mention."
+      source_page:
+        type: "INTEGER"
+        description: "1-based source PDF page."
+        minimum: 1
+    optional_properties:
+      category:
+        type: "STRING"
+        description: "Product or service category."
+      description:
+        type: "STRING"
+        description: "Short report-grounded description."
+      brand:
+        type: "STRING"
+        description: "Brand name when different from the product name."
+    provenance:
+      mode: "CHUNK"
+      required_fields: ["source_report_id", "source_chunk_id", "source_page"]
+      optional_fields: []
+      description: "Products are not added from model memory; a report citation is mandatory."
+
+  Sector:
+    description: "A normalized business sector or industry classification."
+    primary_key: "id"
+    id_generation:
+      strategy: "template"
+      pattern: "sector:{normalized_name}"
+      inputs: ["normalized_name"]
+      normalization: "ASCII snake-case normalized sector name."
+      example: "sector:savunma_elektronigi"
+    required_properties:
+      id:
+        type: "STRING"
+        description: "Stable normalized graph identifier."
+        pattern: '^sector:[a-z0-9_]+$'
+      name:
+        type: "STRING"
+        description: "Preferred sector display name."
+      normalized_name:
+        type: "STRING"
+        description: "ASCII snake-case normalized sector name."
+        pattern: '^[a-z0-9_]+$'
+    optional_properties:
+      classification_system:
+        type: "STRING"
+        description: "Optional taxonomy, such as NACE or GICS."
+      classification_code:
+        type: "STRING"
+        description: "Optional taxonomy code."
+      source_report_id:
+        type: "STRING"
+        description: "Report supporting a report-derived classification."
+      source_chunk_id:
+        type: "STRING"
+        description: "Chunk supporting a report-derived classification."
+      source_page:
+        type: "INTEGER"
+        description: "1-based source PDF page."
+        minimum: 1
+    provenance:
+      mode: "CANONICAL"
+      required_fields: []
+      optional_fields: ["source_report_id", "source_chunk_id", "source_page"]
+      description: "A controlled taxonomy may seed sectors; OPERATES_IN carries claim evidence."
+
+  FinancialMetric:
+    description: "A sourced financial observation for one company, date, scope, and source report."
+    primary_key: "id"
+    id_generation:
+      strategy: "sha256"
+      pattern: "metric:{TICKER}:{sha256_24}"
+      inputs: ["company_id", "metric_key", "date_id", "scope", "source_report_id"]
+      normalization: "SHA-256 over pipe-joined canonical inputs; retain the first 24 hex characters."
+      digest_length: 24
+      example: "metric:ASELS:957e9adf32e4bf097bc9d3eb"
+    required_properties:
+      id:
+        type: "STRING"
+        description: "Stable sourced-observation identifier."
+        pattern: '^metric:[A-Z0-9._-]+:[0-9a-f]{24}$'
+      metric_key:
+        type: "STRING"
+        description: "Normalized metric key, such as total_revenue."
+        pattern: '^[a-z0-9_]+$'
+      name:
+        type: "STRING"
+        description: "Metric label as reported."
+      value:
+        type: "FLOAT"
+        description: "Numeric value before applying the optional scale multiplier."
+      unit:
+        type: "STRING"
+        description: "Canonical unit or ISO currency code, such as TRY, USD, PERCENT, or COUNT."
+      company_id:
+        type: "STRING"
+        description: "Company to which the observation applies."
+        pattern: '^company:.+$'
+      date_id:
+        type: "STRING"
+        description: "Date or reporting period to which the observation applies."
+        pattern: '^date:.+$'
+      scope:
+        type: "STRING"
+        description: "Accounting scope of the observation."
+        allowed_values: ["CONSOLIDATED", "STANDALONE", "SEGMENT"]
+      source_report_id:
+        type: "STRING"
+        description: "Report containing the observation."
+      source_chunk_id:
+        type: "STRING"
+        description: "Chunk containing the observation."
+      source_page:
+        type: "INTEGER"
+        description: "1-based source PDF page."
+        minimum: 1
+    optional_properties:
+      reported_value:
+        type: "STRING"
+        description: "Original value rendering, retained for audit."
+      scale:
+        type: "INTEGER"
+        description: "Multiplier for value, for example 1000000 for values reported in millions."
+        minimum: 1
+      statement:
+        type: "STRING"
+        description: "Financial statement or table name."
+      notes:
+        type: "STRING"
+        description: "Restatement, inflation accounting, or other qualifier."
+      confidence:
+        type: "FLOAT"
+        description: "Extractor confidence from 0 to 1."
+        minimum: 0
+        maximum: 1
+    provenance:
+      mode: "CHUNK"
+      required_fields: ["source_report_id", "source_chunk_id", "source_page"]
+      optional_fields: ["reported_value", "statement", "notes", "confidence"]
+      description: "Each metric is an observation; source_report_id prevents silent restatement collisions."
+
+  Event:
+    description: "A dated corporate event, milestone, award, launch, investment, or transaction."
+    primary_key: "id"
+    id_generation:
+      strategy: "sha256"
+      pattern: "event:{TICKER}:{sha256_24}"
+      inputs: ["company_id", "date_id", "normalized_title", "source_report_id"]
+      normalization: "SHA-256 over pipe-joined canonical inputs; retain the first 24 hex characters."
+      digest_length: 24
+      example: "event:ASELS:bc0f31d124dc9d28a87a78c1"
+    required_properties:
+      id:
+        type: "STRING"
+        description: "Stable sourced-event identifier."
+        pattern: '^event:[A-Z0-9._-]+:[0-9a-f]{24}$'
+      title:
+        type: "STRING"
+        description: "Concise event title."
+      normalized_title:
+        type: "STRING"
+        description: "ASCII snake-case event title used in identity."
+        pattern: '^[a-z0-9_]+$'
+      event_type:
+        type: "STRING"
+        description: "Coarse event category."
+        allowed_values: ["MILESTONE", "LAUNCH", "INVESTMENT", "TRANSACTION", "AWARD", "APPOINTMENT", "OTHER"]
+      company_id:
+        type: "STRING"
+        description: "Company experiencing the event."
+        pattern: '^company:.+$'
+      date_id:
+        type: "STRING"
+        description: "Exact or coarse event date."
+        pattern: '^date:.+$'
+      source_report_id:
+        type: "STRING"
+        description: "Report containing the event."
+      source_chunk_id:
+        type: "STRING"
+        description: "Chunk containing the event."
+      source_page:
+        type: "INTEGER"
+        description: "1-based source PDF page."
+        minimum: 1
+    optional_properties:
+      description:
+        type: "STRING"
+        description: "Short source-grounded event description."
+      status:
+        type: "STRING"
+        description: "Event status as reported."
+      confidence:
+        type: "FLOAT"
+        description: "Extractor confidence from 0 to 1."
+        minimum: 0
+        maximum: 1
+    provenance:
+      mode: "CHUNK"
+      required_fields: ["source_report_id", "source_chunk_id", "source_page"]
+      optional_fields: ["description", "confidence"]
+      description: "Coarse dates are allowed, but the report chunk and PDF page are always required."
+
+  Date:
+    description: "A canonical day, month, quarter, or year used by reports, metrics, and events."
+    primary_key: "id"
+    id_generation:
+      strategy: "template"
+      pattern: "date:{value}"
+      inputs: ["value"]
+      normalization: "Use YYYY, YYYY-Qn, YYYY-MM, or YYYY-MM-DD and uppercase quarter notation."
+      example: "date:2024"
+    required_properties:
+      id:
+        type: "STRING"
+        description: "Stable canonical date identifier."
+        pattern: '^date:\d{4}(-Q[1-4]|-\d{2}(-\d{2})?)?$'
+      value:
+        type: "STRING"
+        description: "Canonical temporal key."
+        pattern: '^\d{4}(-Q[1-4]|-\d{2}(-\d{2})?)?$'
+      granularity:
+        type: "STRING"
+        description: "Precision of the temporal key."
+        allowed_values: ["YEAR", "QUARTER", "MONTH", "DAY"]
+    optional_properties:
+      start_date:
+        type: "STRING"
+        description: "Inclusive ISO start date for a period."
+        pattern: '^\d{4}-\d{2}-\d{2}$'
+      end_date:
+        type: "STRING"
+        description: "Inclusive ISO end date for a period."
+        pattern: '^\d{4}-\d{2}-\d{2}$'
+      fiscal_year:
+        type: "INTEGER"
+        description: "Fiscal year when different temporal queries need a numeric key."
+        minimum: 1900
+        maximum: 2100
+      quarter:
+        type: "INTEGER"
+        description: "Quarter number for quarter-granularity nodes."
+        minimum: 1
+        maximum: 4
+    provenance:
+      mode: "CANONICAL"
+      required_fields: []
+      optional_fields: []
+      description: "Date nodes are normalized values; claim provenance stays on the attached fact or relation."
+
+relationship_types:
+  PUBLISHED:
+    description: "Company published the report."
+    source: "Company"
+    target: "Report"
+    cardinality: "ONE_TO_MANY"
+    id_generation:
+      strategy: "sha256"
+      pattern: "rel:published:{sha256_24}"
+      inputs: ["relationship_type", "source_id", "target_id"]
+      normalization: "SHA-256 over PUBLISHED|source_id|target_id; first 24 hex characters."
+      digest_length: 24
+      example: "rel:published:3f8c6e07d18c753bbf52f00d"
+    required_properties:
+      id:
+        type: "STRING"
+        description: "Deterministic relationship identifier."
+      source_report_id:
+        type: "STRING"
+        description: "Target Report.id; retained for uniform provenance audits."
+    optional_properties:
+      source_manifest:
+        type: "STRING"
+        description: "Manifest file that established the publisher."
+    provenance:
+      mode: "DOCUMENT"
+      required_fields: ["source_report_id"]
+      optional_fields: ["source_manifest"]
+      description: "Derived from the validated report manifest rather than LLM extraction."
+
+  HAS_CHUNK:
+    description: "Report contains the chunk."
+    source: "Report"
+    target: "Chunk"
+    cardinality: "ONE_TO_MANY"
+    id_generation:
+      strategy: "sha256"
+      pattern: "rel:has_chunk:{sha256_24}"
+      inputs: ["relationship_type", "source_id", "target_id"]
+      normalization: "SHA-256 over HAS_CHUNK|source_id|target_id; first 24 hex characters."
+      digest_length: 24
+      example: "rel:has_chunk:a0bf3060907f15f0841b29c3"
+    required_properties:
+      id:
+        type: "STRING"
+        description: "Deterministic relationship identifier."
+      source_report_id:
+        type: "STRING"
+        description: "Source Report.id."
+      source_page:
+        type: "INTEGER"
+        description: "Target chunk's 1-based PDF page."
+        minimum: 1
+    optional_properties: {}
+    provenance:
+      mode: "CHUNK"
+      required_fields: ["source_report_id", "source_page"]
+      optional_fields: []
+      description: "Derived directly from report_id and page_number in chunk metadata."
+
+  COVERS_DATE:
+    description: "Report covers the year or period represented by Date."
+    source: "Report"
+    target: "Date"
+    cardinality: "MANY_TO_ONE"
+    id_generation:
+      strategy: "sha256"
+      pattern: "rel:covers_date:{sha256_24}"
+      inputs: ["relationship_type", "source_id", "target_id"]
+      normalization: "SHA-256 over COVERS_DATE|source_id|target_id; first 24 hex characters."
+      digest_length: 24
+      example: "rel:covers_date:8d8b7d75d72fcbb3376750f9"
+    required_properties:
+      id:
+        type: "STRING"
+        description: "Deterministic relationship identifier."
+      source_report_id:
+        type: "STRING"
+        description: "Source Report.id."
+    optional_properties: {}
+    provenance:
+      mode: "DOCUMENT"
+      required_fields: ["source_report_id"]
+      optional_fields: []
+      description: "Derived from the canonical report year or period metadata."
+
+  OPERATES_IN:
+    description: "Company operates in a business sector."
+    source: "Company"
+    target: "Sector"
+    cardinality: "MANY_TO_MANY"
+    id_generation:
+      strategy: "sha256"
+      pattern: "rel:operates_in:{sha256_24}"
+      inputs: ["relationship_type", "source_id", "target_id", "source_report_id"]
+      normalization: "SHA-256 over type, endpoints, and source report; first 24 hex characters."
+      digest_length: 24
+      example: "rel:operates_in:7231d6cac2d21d13a357ee9f"
+    required_properties:
+      id:
+        type: "STRING"
+        description: "Deterministic relationship identifier."
+      source_report_id:
+        type: "STRING"
+        description: "Report supporting the classification."
+      source_chunk_id:
+        type: "STRING"
+        description: "Chunk supporting the classification."
+      source_page:
+        type: "INTEGER"
+        description: "1-based source PDF page."
+        minimum: 1
+    optional_properties:
+      confidence:
+        type: "FLOAT"
+        description: "Extractor confidence from 0 to 1."
+        minimum: 0
+        maximum: 1
+    provenance:
+      mode: "CHUNK"
+      required_fields: ["source_report_id", "source_chunk_id", "source_page"]
+      optional_fields: ["confidence"]
+      description: "A report-grounded sector claim."
+
+  OFFERS:
+    description: "Company offers, manufactures, or operates a product or service."
+    source: "Company"
+    target: "Product"
+    cardinality: "ONE_TO_MANY"
+    id_generation:
+      strategy: "sha256"
+      pattern: "rel:offers:{sha256_24}"
+      inputs: ["relationship_type", "source_id", "target_id", "source_report_id"]
+      normalization: "SHA-256 over type, endpoints, and source report; first 24 hex characters."
+      digest_length: 24
+      example: "rel:offers:7638ac2bd5df713152c1f1b2"
+    required_properties:
+      id:
+        type: "STRING"
+        description: "Deterministic relationship identifier."
+      source_report_id:
+        type: "STRING"
+        description: "Report supporting the product claim."
+      source_chunk_id:
+        type: "STRING"
+        description: "Chunk supporting the product claim."
+      source_page:
+        type: "INTEGER"
+        description: "1-based source PDF page."
+        minimum: 1
+    optional_properties:
+      confidence:
+        type: "FLOAT"
+        description: "Extractor confidence from 0 to 1."
+        minimum: 0
+        maximum: 1
+    provenance:
+      mode: "CHUNK"
+      required_fields: ["source_report_id", "source_chunk_id", "source_page"]
+      optional_fields: ["confidence"]
+      description: "The product and its company link share the same evidence anchor."
+
+  HOLDS_ROLE_AT:
+    description: "Person holds a named executive or board role at a company."
+    source: "Person"
+    target: "Company"
+    cardinality: "MANY_TO_MANY"
+    id_generation:
+      strategy: "sha256"
+      pattern: "rel:holds_role_at:{sha256_24}"
+      inputs: ["relationship_type", "source_id", "target_id", "role", "source_report_id"]
+      normalization: "SHA-256 over type, endpoints, normalized role, and source report; first 24 hex characters."
+      digest_length: 24
+      example: "rel:holds_role_at:c3773f69b6ea86e2eaf9ed9d"
+    required_properties:
+      id:
+        type: "STRING"
+        description: "Deterministic relationship identifier."
+      role:
+        type: "STRING"
+        description: "Role as reported, such as CEO/Genel Müdür."
+      source_report_id:
+        type: "STRING"
+        description: "Report supporting the role."
+      source_chunk_id:
+        type: "STRING"
+        description: "Chunk supporting the role."
+      source_page:
+        type: "INTEGER"
+        description: "1-based source PDF page."
+        minimum: 1
+    optional_properties:
+      start_date_id:
+        type: "STRING"
+        description: "Canonical Date.id for the reported role start."
+      end_date_id:
+        type: "STRING"
+        description: "Canonical Date.id for the reported role end."
+      confidence:
+        type: "FLOAT"
+        description: "Extractor confidence from 0 to 1."
+        minimum: 0
+        maximum: 1
+    provenance:
+      mode: "CHUNK"
+      required_fields: ["source_report_id", "source_chunk_id", "source_page"]
+      optional_fields: ["start_date_id", "end_date_id", "confidence"]
+      description: "Role and tenure are relationship facts, not mutable Person properties."
+
+  REPORTED_METRIC:
+    description: "Company reported a financial observation."
+    source: "Company"
+    target: "FinancialMetric"
+    cardinality: "ONE_TO_MANY"
+    id_generation:
+      strategy: "sha256"
+      pattern: "rel:reported_metric:{sha256_24}"
+      inputs: ["relationship_type", "source_id", "target_id", "source_report_id"]
+      normalization: "SHA-256 over type, endpoints, and source report; first 24 hex characters."
+      digest_length: 24
+      example: "rel:reported_metric:91fb8ea9b9fc3b83a90770f4"
+    required_properties:
+      id:
+        type: "STRING"
+        description: "Deterministic relationship identifier."
+      source_report_id:
+        type: "STRING"
+        description: "Report containing the observation."
+      source_chunk_id:
+        type: "STRING"
+        description: "Chunk containing the observation."
+      source_page:
+        type: "INTEGER"
+        description: "1-based source PDF page."
+        minimum: 1
+    optional_properties: {}
+    provenance:
+      mode: "CHUNK"
+      required_fields: ["source_report_id", "source_chunk_id", "source_page"]
+      optional_fields: []
+      description: "Uses the same evidence coordinates as the FinancialMetric node."
+
+  CONTAINS_METRIC:
+    description: "Report contains a financial observation."
+    source: "Report"
+    target: "FinancialMetric"
+    cardinality: "ONE_TO_MANY"
+    id_generation:
+      strategy: "sha256"
+      pattern: "rel:contains_metric:{sha256_24}"
+      inputs: ["relationship_type", "source_id", "target_id", "source_chunk_id"]
+      normalization: "SHA-256 over type, endpoints, and source chunk; first 24 hex characters."
+      digest_length: 24
+      example: "rel:contains_metric:22ccb0bb30c683eb7bb3f90b"
+    required_properties:
+      id:
+        type: "STRING"
+        description: "Deterministic relationship identifier."
+      source_report_id:
+        type: "STRING"
+        description: "Source Report.id."
+      source_chunk_id:
+        type: "STRING"
+        description: "Chunk containing the observation."
+      source_page:
+        type: "INTEGER"
+        description: "1-based source PDF page."
+        minimum: 1
+    optional_properties: {}
+    provenance:
+      mode: "CHUNK"
+      required_fields: ["source_report_id", "source_chunk_id", "source_page"]
+      optional_fields: []
+      description: "Connects the document to a source-specific financial observation."
+
+  FOR_DATE:
+    description: "Financial observation applies to the Date node."
+    source: "FinancialMetric"
+    target: "Date"
+    cardinality: "MANY_TO_ONE"
+    id_generation:
+      strategy: "sha256"
+      pattern: "rel:for_date:{sha256_24}"
+      inputs: ["relationship_type", "source_id", "target_id", "source_report_id"]
+      normalization: "SHA-256 over type, endpoints, and source report; first 24 hex characters."
+      digest_length: 24
+      example: "rel:for_date:a081adf91126487362184dce"
+    required_properties:
+      id:
+        type: "STRING"
+        description: "Deterministic relationship identifier."
+      source_report_id:
+        type: "STRING"
+        description: "Report supporting the observation date."
+      source_chunk_id:
+        type: "STRING"
+        description: "Chunk supporting the observation date."
+      source_page:
+        type: "INTEGER"
+        description: "1-based source PDF page."
+        minimum: 1
+    optional_properties: {}
+    provenance:
+      mode: "CHUNK"
+      required_fields: ["source_report_id", "source_chunk_id", "source_page"]
+      optional_fields: []
+      description: "Date interpretation is auditable from the same chunk as the value."
+
+  EXPERIENCED:
+    description: "Company experienced or carried out a corporate event."
+    source: "Company"
+    target: "Event"
+    cardinality: "ONE_TO_MANY"
+    id_generation:
+      strategy: "sha256"
+      pattern: "rel:experienced:{sha256_24}"
+      inputs: ["relationship_type", "source_id", "target_id", "source_report_id"]
+      normalization: "SHA-256 over type, endpoints, and source report; first 24 hex characters."
+      digest_length: 24
+      example: "rel:experienced:8ab548ed3c4f8336144ddd67"
+    required_properties:
+      id:
+        type: "STRING"
+        description: "Deterministic relationship identifier."
+      source_report_id:
+        type: "STRING"
+        description: "Report containing the event."
+      source_chunk_id:
+        type: "STRING"
+        description: "Chunk containing the event."
+      source_page:
+        type: "INTEGER"
+        description: "1-based source PDF page."
+        minimum: 1
+    optional_properties: {}
+    provenance:
+      mode: "CHUNK"
+      required_fields: ["source_report_id", "source_chunk_id", "source_page"]
+      optional_fields: []
+      description: "Uses the same evidence coordinates as the Event node."
+
+  DESCRIBES_EVENT:
+    description: "Report describes a corporate event."
+    source: "Report"
+    target: "Event"
+    cardinality: "ONE_TO_MANY"
+    id_generation:
+      strategy: "sha256"
+      pattern: "rel:describes_event:{sha256_24}"
+      inputs: ["relationship_type", "source_id", "target_id", "source_chunk_id"]
+      normalization: "SHA-256 over type, endpoints, and source chunk; first 24 hex characters."
+      digest_length: 24
+      example: "rel:describes_event:79e07ad11ed9e55c76d406d3"
+    required_properties:
+      id:
+        type: "STRING"
+        description: "Deterministic relationship identifier."
+      source_report_id:
+        type: "STRING"
+        description: "Source Report.id."
+      source_chunk_id:
+        type: "STRING"
+        description: "Chunk containing the event."
+      source_page:
+        type: "INTEGER"
+        description: "1-based source PDF page."
+        minimum: 1
+    optional_properties: {}
+    provenance:
+      mode: "CHUNK"
+      required_fields: ["source_report_id", "source_chunk_id", "source_page"]
+      optional_fields: []
+      description: "Connects a report to its source-specific event observation."
+
+  OCCURRED_ON:
+    description: "Corporate event occurred on or within the Date node."
+    source: "Event"
+    target: "Date"
+    cardinality: "MANY_TO_ONE"
+    id_generation:
+      strategy: "sha256"
+      pattern: "rel:occurred_on:{sha256_24}"
+      inputs: ["relationship_type", "source_id", "target_id", "source_report_id"]
+      normalization: "SHA-256 over type, endpoints, and source report; first 24 hex characters."
+      digest_length: 24
+      example: "rel:occurred_on:ecb9a3da454b5d1563ad916e"
+    required_properties:
+      id:
+        type: "STRING"
+        description: "Deterministic relationship identifier."
+      source_report_id:
+        type: "STRING"
+        description: "Report supporting the event date."
+      source_chunk_id:
+        type: "STRING"
+        description: "Chunk supporting the event date."
+      source_page:
+        type: "INTEGER"
+        description: "1-based source PDF page."
+        minimum: 1
+    optional_properties: {}
+    provenance:
+      mode: "CHUNK"
+      required_fields: ["source_report_id", "source_chunk_id", "source_page"]
+      optional_fields: []
+      description: "Allows exact or coarse report-grounded event dates."
+
+  OWNS:
+    description: "One company owns all or part of another company."
+    source: "Company"
+    target: "Company"
+    cardinality: "MANY_TO_MANY"
+    id_generation:
+      strategy: "sha256"
+      pattern: "rel:owns:{sha256_24}"
+      inputs: ["relationship_type", "source_id", "target_id", "source_report_id"]
+      normalization: "SHA-256 over type, endpoints, and source report; first 24 hex characters."
+      digest_length: 24
+      example: "rel:owns:07cdbb450d8f81e7bdc5a8d0"
+    required_properties:
+      id:
+        type: "STRING"
+        description: "Deterministic relationship identifier."
+      source_report_id:
+        type: "STRING"
+        description: "Report supporting the ownership claim."
+      source_chunk_id:
+        type: "STRING"
+        description: "Chunk supporting the ownership claim."
+      source_page:
+        type: "INTEGER"
+        description: "1-based source PDF page."
+        minimum: 1
+    optional_properties:
+      ownership_percent:
+        type: "FLOAT"
+        description: "Reported ownership percentage."
+        minimum: 0
+        maximum: 100
+      direct:
+        type: "BOOLEAN"
+        description: "Whether the ownership is direct."
+      date_id:
+        type: "STRING"
+        description: "Date at which the ownership statement applies."
+      confidence:
+        type: "FLOAT"
+        description: "Extractor confidence from 0 to 1."
+        minimum: 0
+        maximum: 1
+    provenance:
+      mode: "CHUNK"
+      required_fields: ["source_report_id", "source_chunk_id", "source_page"]
+      optional_fields: ["ownership_percent", "date_id", "confidence"]
+      description: "Ownership percentages are stored exactly as reported and tied to their evidence."
+
+  EVIDENCED_BY:
+    description: "An extracted entity or observation is directly grounded in a Chunk."
+    source: ["Person", "Product", "Sector", "FinancialMetric", "Event"]
+    target: "Chunk"
+    cardinality: "MANY_TO_MANY"
+    id_generation:
+      strategy: "sha256"
+      pattern: "rel:evidenced_by:{sha256_24}"
+      inputs: ["relationship_type", "source_id", "target_id"]
+      normalization: "SHA-256 over EVIDENCED_BY|source_id|target_id; first 24 hex characters."
+      digest_length: 24
+      example: "rel:evidenced_by:6ae2824d760f3932c00bc963"
+    required_properties:
+      id:
+        type: "STRING"
+        description: "Deterministic relationship identifier."
+      source_report_id:
+        type: "STRING"
+        description: "Report containing the target chunk."
+      source_page:
+        type: "INTEGER"
+        description: "Target chunk's 1-based PDF page."
+        minimum: 1
+    optional_properties:
+      extraction_method:
+        type: "STRING"
+        description: "Extractor or review method that created the assertion."
+      confidence:
+        type: "FLOAT"
+        description: "Extractor confidence from 0 to 1."
+        minimum: 0
+        maximum: 1
+    provenance:
+      mode: "CHUNK"
+      required_fields: ["source_report_id", "source_page"]
+      optional_fields: ["extraction_method", "confidence"]
+      description: "Provides a traversable evidence edge in addition to source fields on extracted nodes."
+
+neo4j:
+  minimum_version: "5"
+  edition: "community"
+  constraints:
+    - {name: "c_company_id", label: "Company", properties: ["id"], kind: "UNIQUE"}
+    - {name: "c_report_id", label: "Report", properties: ["id"], kind: "UNIQUE"}
+    - {name: "c_chunk_id", label: "Chunk", properties: ["id"], kind: "UNIQUE"}
+    - {name: "c_person_id", label: "Person", properties: ["id"], kind: "UNIQUE"}
+    - {name: "c_product_id", label: "Product", properties: ["id"], kind: "UNIQUE"}
+    - {name: "c_sector_id", label: "Sector", properties: ["id"], kind: "UNIQUE"}
+    - {name: "c_financial_metric_id", label: "FinancialMetric", properties: ["id"], kind: "UNIQUE"}
+    - {name: "c_event_id", label: "Event", properties: ["id"], kind: "UNIQUE"}
+    - {name: "c_date_id", label: "Date", properties: ["id"], kind: "UNIQUE"}
+    - {name: "c_company_ticker", label: "Company", properties: ["ticker"], kind: "UNIQUE"}
+    - {name: "c_report_document_id", label: "Report", properties: ["document_id"], kind: "UNIQUE"}
+    - {name: "c_chunk_chunk_id", label: "Chunk", properties: ["chunk_id"], kind: "UNIQUE"}
+    - {name: "c_date_value", label: "Date", properties: ["value"], kind: "UNIQUE"}
+  indexes:
+    - name: "idx_report_lookup"
+      entity: "NODE"
+      kind: "RANGE"
+      labels: ["Report"]
+      properties: ["ticker", "year", "report_type", "language"]
+    - name: "idx_chunk_citation"
+      entity: "NODE"
+      kind: "RANGE"
+      labels: ["Chunk"]
+      properties: ["report_id", "page_number"]
+    - name: "idx_person_name"
+      entity: "NODE"
+      kind: "RANGE"
+      labels: ["Person"]
+      properties: ["normalized_name"]
+    - name: "idx_product_name"
+      entity: "NODE"
+      kind: "RANGE"
+      labels: ["Product"]
+      properties: ["normalized_name"]
+    - name: "idx_sector_name"
+      entity: "NODE"
+      kind: "RANGE"
+      labels: ["Sector"]
+      properties: ["normalized_name"]
+    - name: "idx_metric_lookup"
+      entity: "NODE"
+      kind: "RANGE"
+      labels: ["FinancialMetric"]
+      properties: ["company_id", "metric_key", "date_id"]
+    - name: "idx_metric_source"
+      entity: "NODE"
+      kind: "RANGE"
+      labels: ["FinancialMetric"]
+      properties: ["source_chunk_id"]
+    - name: "idx_event_lookup"
+      entity: "NODE"
+      kind: "RANGE"
+      labels: ["Event"]
+      properties: ["company_id", "date_id", "event_type"]
+    - name: "idx_entity_fulltext"
+      entity: "NODE"
+      kind: "FULLTEXT"
+      labels: ["Company", "Person", "Product", "Sector", "Event"]
+      properties: ["name", "title", "aliases", "description"]
+    - name: "idx_evidence_report"
+      entity: "RELATIONSHIP"
+      kind: "RANGE"
+      relationship_type: "EVIDENCED_BY"
+      properties: ["source_report_id"]
+    - name: "idx_role_name"
+      entity: "RELATIONSHIP"
+      kind: "RANGE"
+      relationship_type: "HOLDS_ROLE_AT"
+      properties: ["role"]
+  application_enforced_rules:
+    - "Relationship IDs are generated before loading and MERGE uses type plus id; Neo4j Community has no portable relationship uniqueness constraint."
+    - "Required-property and endpoint validation runs in the application because Community Edition property-existence constraints are not assumed."
+    - "Node IDs, Report.document_id, Chunk.chunk_id, Company.ticker, and Date.value are protected by database uniqueness constraints."

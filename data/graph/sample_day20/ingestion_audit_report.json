@@ -1,0 +1,21 @@
+{
+  "total_input_entities": 11,
+  "total_input_relations": 0,
+  "ingested_nodes": 11,
+  "ingested_relations": 0,
+  "node_counts_by_label": {
+    "`Company`": 1,
+    "`Date`": 1,
+    "`FinancialMetric`": 3,
+    "`Person`": 2,
+    "`Product`": 3,
+    "`Sector`": 1
+  },
+  "relation_counts_by_type": {},
+  "orphan_node_count": 11,
+  "duplicate_merge_attempts": 11,
+  "execution_time_ms": 0.34,
+  "status": "PASS",
+  "checkpoint_path": "/private/var/folders/zy/yx6bzmnj39zfjqv4vd2x76c80000gn/T/pytest-of-ceylanal/pytest-132/test_ingestion_pipeline_run_sa0/chk1.json",
+  "errors": []
+}

@@ -1,0 +1,18 @@
+{
+  "ambiguous_record_count": 7,
+  "canonical_entity_count": 11,
+  "canonical_type_distribution": {
+    "Company": 1,
+    "Date": 1,
+    "FinancialMetric": 3,
+    "Person": 2,
+    "Product": 3,
+    "Sector": 1
+  },
+  "different_entity_pairs": 8,
+  "exact_match_pairs": 5,
+  "high_confidence_match_pairs": 2,
+  "input_record_count": 17,
+  "merged_record_count": 6,
+  "review_required_pairs": 5
+}

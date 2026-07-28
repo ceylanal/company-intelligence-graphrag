@@ -80,9 +80,7 @@ def validate():
 
         # 2. File Size Check
         if file_size < MIN_FILE_SIZE:
-            issues.append(
-                f"[{doc_id}] File size too small ({file_size} bytes < {MIN_FILE_SIZE} bytes threshold)."
-            )
+            issues.append(f"[{doc_id}] File size too small ({file_size} bytes < {MIN_FILE_SIZE} bytes threshold).")
             failed_count += 1
             continue
 
@@ -110,16 +108,12 @@ def validate():
         if actual_hash in hashes:
             existing_doc = hashes[actual_hash]
             duplicates.append((doc_id, existing_doc, actual_hash))
-            issues.append(
-                f"[{doc_id}] DUPLICATE SHA-256 matches {existing_doc} (hash: {actual_hash[:12]}...)"
-            )
+            issues.append(f"[{doc_id}] DUPLICATE SHA-256 matches {existing_doc} (hash: {actual_hash[:12]}...)")
         else:
             hashes[actual_hash] = doc_id
 
         valid_count += 1
-        print(
-            f"[OK] {doc_id} -> Size: {file_size:,} bytes | Pages: {page_count} | SHA256: {actual_hash[:12]}..."
-        )
+        print(f"[OK] {doc_id} -> Size: {file_size:,} bytes | Pages: {page_count} | SHA256: {actual_hash[:12]}...")
 
     print("\n" + "=" * 60)
     print("VALIDATION SUMMARY")

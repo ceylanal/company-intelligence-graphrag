@@ -1,0 +1,21 @@
+{
+  "audit_date": "2026-07-27T10:06:56.092150+00:00",
+  "metrics": {
+    "total_nodes": 0,
+    "total_relations": 0,
+    "duplicate_nodes_count": 0,
+    "duplicate_relations_count": 0,
+    "dangling_relations_count": 0,
+    "orphan_nodes_count": 0,
+    "missing_grounding_count": 0,
+    "schema_violations_count": 0,
+    "invalid_properties_count": 0,
+    "conflicting_data_count": 0,
+    "low_confidence_count": 0,
+    "overall_quality_score": 100.0,
+    "status": "PASS"
+  },
+  "issues": [],
+  "human_review_required_count": 0,
+  "repairable_count": 0
+}

@@ -1,0 +1,82 @@
+schema_version: "1.0.0"
+repository: ceylanal/company-intelligence-graphrag
+container:
+  image: ghcr.io/ceylanal/company-intelligence-graphrag
+  canonical_reference: digest
+environments:
+  staging:
+    github_environment: staging
+    cloud_run_service: company-graphrag-staging
+    qdrant_collection: company_documents_staging
+    neo4j_database: neo4j
+    opik_project: company-graphrag-staging
+    grafana_environment: staging
+  production:
+    github_environment: production
+    cloud_run_service: company-graphrag
+    qdrant_collection: company_documents_production
+    neo4j_database: neo4j
+    opik_project: company-graphrag-production
+    grafana_environment: production
+github:
+  secrets:
+    - GCP_WORKLOAD_IDENTITY_PROVIDER
+    - GCP_SERVICE_ACCOUNT
+  variables:
+    - GCP_PROJECT_ID
+    - GCP_REGION
+    - CLOUD_RUN_SERVICE
+    - ARTIFACT_REGISTRY_IMAGE
+    - QDRANT_URL
+    - NEO4J_URI
+    - NEO4J_USERNAME
+    - LLM_PROVIDER
+    - LLM_MODEL
+application_secrets:
+  - API_KEY
+  - LLM_API_KEY
+  - QDRANT_API_KEY
+  - NEO4J_PASSWORD
+  - OPIK_API_KEY
+  - OTEL_EXPORTER_OTLP_HEADERS
+runtime_variables:
+  - ENVIRONMENT
+  - APP_VERSION
+  - GIT_COMMIT_SHA
+  - QDRANT_URL
+  - QDRANT_COLLECTION_NAME
+  - QDRANT_USE_CLOUD
+  - NEO4J_URI
+  - NEO4J_USERNAME
+  - NEO4J_DATABASE
+  - NEO4J_USE_CLOUD
+  - LLM_PROVIDER
+  - LLM_MODEL
+  - TELEMETRY_ENABLED
+  - TELEMETRY_EXPORTER
+  - OTEL_EXPORTER_OTLP_ENDPOINT
+  - OPIK_ENABLED
+  - OPIK_WORKSPACE
+expected_smoke_tests:
+  - liveness
+  - readiness
+  - version
+  - authentication
+  - invalid_request
+  - vector_retrieval
+  - graph_retrieval
+  - hybrid_research
+  - citation_validation
+  - rate_limit
+  - budget_exceeded
+expected_eval_suites:
+  - vector_retrieval
+  - graph_retrieval
+  - multi_hop_reasoning
+  - hybrid_retrieval
+  - citation_correctness
+  - citation_coverage
+  - groundedness
+  - answer_relevance
+  - agent_task_success
+  - failure_recovery

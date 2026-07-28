@@ -1,0 +1,20 @@
+{
+  "average_confidence": 0.9771,
+  "cache_hits": 2,
+  "entity_count": 4,
+  "entity_type_distribution": {
+    "Company": 1,
+    "Date": 1,
+    "FinancialMetric": 1,
+    "Person": 1
+  },
+  "processed_chunks": 2,
+  "provider_calls": 0,
+  "rejected_count": 1,
+  "relation_count": 3,
+  "relation_type_distribution": {
+    "FOR_DATE": 1,
+    "HOLDS_ROLE_AT": 1,
+    "REPORTED_METRIC": 1
+  }
+}

@@ -1,0 +1,99 @@
+{
+  "activation_status": {
+    "cloud_run_staging": "BLOCKED_BY_PREREQUISITES",
+    "cosign": "SIGNATURE_PENDING",
+    "ghcr": "GHCR_PUBLISH_PENDING",
+    "github_actions": "VERIFIED_RUN_30404491347",
+    "grafana_cloud": "BLOCKED_BY_CREDENTIALS",
+    "neo4j_aura": "BLOCKED_BY_CREDENTIALS_AND_EMPTY_SOURCE_GRAPH",
+    "opik": "BLOCKED_BY_CREDENTIALS",
+    "production": "PRODUCTION_APPROVAL_PENDING",
+    "qdrant_cloud": "BLOCKED_BY_CREDENTIALS"
+  },
+  "container": {
+    "candidate_tags": [
+      "ghcr.io/ceylanal/company-intelligence-graphrag:sha-87dfa10711f2",
+      "ghcr.io/ceylanal/company-intelligence-graphrag:0.1.0",
+      "ghcr.io/ceylanal/company-intelligence-graphrag:staging"
+    ],
+    "digest": null,
+    "image": "ghcr.io/ceylanal/company-intelligence-graphrag",
+    "signature_verified": false
+  },
+  "credential_presence": {
+    "application_secrets": {
+      "API_KEY": false,
+      "LLM_API_KEY": false,
+      "NEO4J_PASSWORD": false,
+      "OPIK_API_KEY": false,
+      "OTEL_EXPORTER_OTLP_HEADERS": false,
+      "QDRANT_API_KEY": false
+    },
+    "github_secrets": {
+      "GCP_SERVICE_ACCOUNT": false,
+      "GCP_WORKLOAD_IDENTITY_PROVIDER": false
+    }
+  },
+  "expected_eval_suites": [
+    "vector_retrieval",
+    "graph_retrieval",
+    "multi_hop_reasoning",
+    "hybrid_retrieval",
+    "citation_correctness",
+    "citation_coverage",
+    "groundedness",
+    "answer_relevance",
+    "agent_task_success",
+    "failure_recovery"
+  ],
+  "expected_smoke_tests": [
+    "liveness",
+    "readiness",
+    "version",
+    "authentication",
+    "invalid_request",
+    "vector_retrieval",
+    "graph_retrieval",
+    "hybrid_research",
+    "citation_validation",
+    "rate_limit",
+    "budget_exceeded"
+  ],
+  "generated_at": "2026-07-28T22:31:23+00:00",
+  "git": {
+    "branch": "codex/production-activation",
+    "commit_sha": "87dfa10711f27c3cab02d9ee716eae853ce8375a",
+    "short_sha": "87dfa10711f2",
+    "worktree_clean": true
+  },
+  "production": {
+    "cloud_run_service": "company-graphrag",
+    "environment": "production",
+    "grafana_environment": "production",
+    "neo4j_database": "neo4j",
+    "opik_project": "company-graphrag-production",
+    "qdrant_collection": "company_documents_production",
+    "revision": null,
+    "url": null
+  },
+  "repository": "ceylanal/company-intelligence-graphrag",
+  "rollback_target": null,
+  "schema_version": "1.0.0",
+  "staging": {
+    "cloud_run_service": "company-graphrag-staging",
+    "environment": "staging",
+    "grafana_environment": "staging",
+    "neo4j_database": "neo4j",
+    "opik_project": "company-graphrag-staging",
+    "qdrant_collection": "company_documents_staging",
+    "revision": null,
+    "url": null
+  },
+  "versioning": {
+    "application_version": "0.1.0",
+    "config_hash": "0c39f6471caa369668c46f391ef3bd472c6345fb0042bc12943f2d35cd9c4880",
+    "manifest_schema_version": "1.0.0",
+    "prompt_bundle_version": "1.0.0",
+    "workflow_version": "1.0.0"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "completed_entity_ids": [
+    "person:KCHOL:ahmet_akyol",
+    "date:2024",
+    "sector:savunma_sanayii",
+    "product:ASELS:siper_urun_sistemi",
+    "metric:ASELS:7beaaff05b7d467a42b00549",
+    "person:ASELS:ahmet_akyol",
+    "product:ASELS:siper_urun_2",
+    "metric:ASELS:027994880096b342bab8e469:variant:247dfb5ca0a3",
+    "product:ASELS:siper_urun_1",
+    "company:ASELS",
+    "metric:ASELS:027994880096b342bab8e469"
+  ],
+  "completed_relation_ids": [],
+  "completed_batches": [
+    1
+  ],
+  "last_updated_at": "2026-07-27T10:02:05.187567+00:00"
+}
