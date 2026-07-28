@@ -555,7 +555,7 @@ requires-dist = [
     { name = "opentelemetry-exporter-otlp-proto-http", specifier = ">=1.27.0" },
     { name = "opentelemetry-instrumentation-fastapi", specifier = ">=0.48b0" },
     { name = "opentelemetry-sdk", specifier = ">=1.27.0" },
-    { name = "opik", specifier = ">=1.7.0" },
+    { name = "opik", specifier = ">=2.2.9" },
     { name = "prometheus-client", specifier = ">=0.20.0" },
     { name = "pydantic", specifier = ">=2.7.0" },
     { name = "pydantic-settings", specifier = ">=2.2.0" },
@@ -2123,7 +2123,7 @@ wheels = [
 
 [[package]]
 name = "opik"
-version = "2.2.7"
+version = "2.2.9"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "boto3-stubs", extra = ["bedrock-runtime"] },
@@ -2146,9 +2146,9 @@ dependencies = [
     { name = "uuid6" },
     { name = "watchfiles" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/68/75/6e1a057f8d6a8b54b224fb6de47fc59fe0b98f5f16d575d1811c6a512a41/opik-2.2.7.tar.gz", hash = "sha256:1e90686c131deba3362b03a7855d4e2d5862ffd2e180a589c97b174f94d4899b", size = 1197536, upload-time = "2026-07-27T09:04:39.125Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/13/68/bc0598d8bbd6b5045ab0951cbbb80996e7a5b661fdb61dd55db74ab5d0ce/opik-2.2.9.tar.gz", hash = "sha256:675c944699680bff876c091217f840d7a7df6468180986e675b0c64a9273b72d", size = 1200845, upload-time = "2026-07-28T12:58:29.32Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/6f/67/15914bf90b41e726e7d49709d0cb49fda98445e259f92d4325fbf7bfd084/opik-2.2.7-py3-none-any.whl", hash = "sha256:e00db6e685c200fd46acb6ef0a2cee3a6698d223fde17625bcddc3f8a7f3885b", size = 1890661, upload-time = "2026-07-27T09:04:37.151Z" },
+    { url = "https://files.pythonhosted.org/packages/88/a4/c9d7e2c78f69e9c3c953dad3bdc1a436dd523721bd9b76640bb9c413895f/opik-2.2.9-py3-none-any.whl", hash = "sha256:5ed6f25bc5a1b4189a4baa0e8b0876af0517c54f711ee28655d4bf7a0c5b0471", size = 1894606, upload-time = "2026-07-28T12:58:27.753Z" },
 ]
 
 [[package]]
