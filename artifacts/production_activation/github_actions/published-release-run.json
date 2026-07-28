@@ -1,0 +1,54 @@
+{
+  "schema_version": "1.0.0",
+  "captured_at": "2026-07-28T23:55:27Z",
+  "repository": "ceylanal/company-intelligence-graphrag",
+  "release_commit": "9fc138e595684acb7056fde08fb1ec1241d1b74a",
+  "workflow_run": {
+    "id": 30409074505,
+    "job_id": 90440983184,
+    "conclusion": "success",
+    "publish": true,
+    "url": "https://github.com/ceylanal/company-intelligence-graphrag/actions/runs/30409074505"
+  },
+  "image": {
+    "repository": "ghcr.io/ceylanal/company-intelligence-graphrag",
+    "digest": "sha256:d13134d91ad3e0168ca46012f9264549e0e67ac8b41dd7c21e9f50c4e7d914fa",
+    "tags": [
+      "sha-9fc138e59568",
+      "0.1.0",
+      "staging"
+    ],
+    "platforms": {
+      "linux/amd64": "sha256:d34c0f25b1b5088b5c64bd6b28cf4beae718b112f763e5120ed8f76a46d2e74e",
+      "linux/arm64": "sha256:a855f90b3bc94a1ee833bc93ebdc6b8679d0bd55bd632b8a23dca80fb80abadc"
+    },
+    "provenance": "PASS",
+    "sbom_attestation": "PASS"
+  },
+  "release_gates": {
+    "hermetic_quality": "PASS",
+    "container_smoke": "PASS",
+    "trivy_critical_findings": 0,
+    "sbom_format": "SPDX-2.3",
+    "sbom_packages": 230
+  },
+  "cosign": {
+    "mode": "keyless",
+    "verification": "PASS",
+    "verified_entries": 1,
+    "certificate_identity": "https://github.com/ceylanal/company-intelligence-graphrag/.github/workflows/release.yml@refs/heads/main",
+    "certificate_oidc_issuer": "https://token.actions.githubusercontent.com",
+    "transparency_log": "PASS"
+  },
+  "release_eval": {
+    "samples": 34,
+    "status": "CONDITIONAL PASS — KNOWN LIMITATIONS",
+    "live_staging_baseline": false
+  },
+  "production_state": {
+    "ghcr_published": true,
+    "cosign_verified": true,
+    "staging_deployed": false,
+    "production_deployed": false
+  }
+}
