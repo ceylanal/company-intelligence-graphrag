@@ -69,14 +69,19 @@ def main() -> None:
     args = parser.parse_args()
 
     base_url = args.base_url.rstrip("/")
+    bearer_token = os.environ.get("BEARER_TOKEN", "") or os.environ.get("GOOGLE_IDENTITY_TOKEN", "")
     api_key = os.environ.get("API_KEY", "")
-    auth_headers = {"x-api-key": api_key} if api_key else {}
+    auth_headers: dict[str, str] = {}
+    if bearer_token:
+        auth_headers["Authorization"] = f"Bearer {bearer_token}"
+    if api_key:
+        auth_headers["x-api-key"] = api_key
     results: list[dict[str, Any]] = []
 
     with httpx.Client(timeout=args.timeout, follow_redirects=False) as client:
-        _record(results, name="liveness", method="GET", url=f"{base_url}/health/live", expected={200}, client=client)
-        _record(results, name="readiness", method="GET", url=f"{base_url}/health/ready", expected={200}, client=client)
-        _record(results, name="version", method="GET", url=f"{base_url}/version", expected={200}, client=client)
+        _record(results, name="liveness", method="GET", url=f"{base_url}/health/live", expected={200}, client=client, headers=auth_headers)
+        _record(results, name="readiness", method="GET", url=f"{base_url}/health/ready", expected={200}, client=client, headers=auth_headers)
+        _record(results, name="version", method="GET", url=f"{base_url}/version", expected={200}, client=client, headers=auth_headers)
         _record(
             results,
             name="invalid_request",

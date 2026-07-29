@@ -53,3 +53,20 @@ jobs:
           OTEL_EXPORTER_OTLP_ENDPOINT: ${{ vars.OTEL_EXPORTER_OTLP_ENDPOINT }}
           IMAGE_DIGEST: ${{ inputs.image_digest }}
         run: ./scripts/deploy_cloud_run.sh
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+        if: inputs.execute
+        with:
+          enable-cache: true
+      - name: Run staging smoke validation
+        if: inputs.execute
+        run: |
+          uv sync --frozen
+          SERVICE_URL=$(gcloud run services describe ${{ vars.CLOUD_RUN_SERVICE }} --region ${{ vars.GCP_REGION }} --format 'value(status.url)')
+          TOKEN=$(gcloud auth print-identity-token --audience="$SERVICE_URL")
+          GOOGLE_IDENTITY_TOKEN="$TOKEN" uv run python scripts/staging_smoke.py --base-url "$SERVICE_URL"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always() && inputs.execute
+        with:
+          name: staging-smoke-results
+          path: artifacts/production_activation/staging/smoke.json
+          if-no-files-found: warn
