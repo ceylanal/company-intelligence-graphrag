@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 from contextlib import contextmanager
 from typing import Any
+from urllib.parse import unquote
 
 import structlog
 from opentelemetry import trace
@@ -50,7 +51,7 @@ def configure_telemetry(settings_obj: Settings = settings) -> None:
 
 def _parse_headers(raw: str) -> dict[str, str]:
     return {
-        key.strip(): value.strip()
+        unquote(key.strip()): unquote(value.strip())
         for item in raw.split(",")
         if "=" in item
         for key, value in [item.split("=", 1)]

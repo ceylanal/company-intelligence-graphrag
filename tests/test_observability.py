@@ -9,7 +9,7 @@ from company_graphrag.observability.context import (
     reset_context,
 )
 from company_graphrag.observability.logging import REDACTED, redact
-from company_graphrag.observability.tracing import configure_telemetry
+from company_graphrag.observability.tracing import _parse_headers, configure_telemetry
 
 
 def test_trace_context_propagates_and_resets() -> None:
@@ -41,3 +41,12 @@ def test_unreachable_telemetry_configuration_is_fail_open() -> None:
             otel_exporter_otlp_endpoint="http://127.0.0.1:1",
         )
     )
+
+
+def test_otlp_headers_decode_standard_url_encoding() -> None:
+    headers = _parse_headers("Authorization=Basic%20opaque-token,x-scope=staging%2Ftraces")
+
+    assert headers == {
+        "Authorization": "Basic opaque-token",
+        "x-scope": "staging/traces",
+    }
