@@ -1,5 +1,7 @@
 """Reproducible, mock-safe load scenarios selected with Locust tags."""
 
+import os
+
 from locust import HttpUser, between, tag, task
 
 
@@ -7,6 +9,12 @@ class HealthUser(HttpUser):
     """Public probe traffic that never invokes a paid model."""
 
     wait_time = between(0.2, 1.0)
+
+    def on_start(self) -> None:
+        """Authenticate private Cloud Run probes without logging credentials."""
+        identity_token = os.environ.get("GOOGLE_IDENTITY_TOKEN", "")
+        if identity_token:
+            self.client.headers.update({"Authorization": f"Bearer {identity_token}"})
 
     @tag("smoke", "normal")
     @task(5)

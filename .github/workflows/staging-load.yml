@@ -1,0 +1,82 @@
+name: Staging Locust Baseline
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_digest:
+        description: Deployed immutable image digest
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  load:
+    runs-on: ubuntu-latest
+    environment: staging
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed # v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@e427ad8a34f8676edf47cf7d7925499adf3eb74f # v2
+      - name: Resolve private staging URL
+        id: service
+        env:
+          CLOUD_RUN_SERVICE: ${{ vars.CLOUD_RUN_SERVICE }}
+          GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+          GCP_REGION: ${{ vars.GCP_REGION }}
+        run: |
+          SERVICE_URL=$(gcloud run services describe "$CLOUD_RUN_SERVICE" \
+            --project "$GCP_PROJECT_ID" \
+            --region "$GCP_REGION" \
+            --format 'value(status.url)')
+          echo "service_url=$SERVICE_URL" >> "$GITHUB_OUTPUT"
+      - uses: google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed # v2
+        id: invoke-auth
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          token_format: id_token
+          id_token_audience: ${{ steps.service.outputs.service_url }}
+          id_token_include_email: true
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+        with:
+          enable-cache: true
+      - name: Run 1, 5, and 10 user bounded stages
+        env:
+          GOOGLE_IDENTITY_TOKEN: ${{ steps.invoke-auth.outputs.id_token }}
+          SERVICE_URL: ${{ steps.service.outputs.service_url }}
+        run: |
+          uv sync --frozen
+          mkdir -p artifacts/production_activation/load
+          for users in 1 5 10; do
+            uv run locust \
+              -f tests/load/locustfile.py \
+              --headless \
+              --host "$SERVICE_URL" \
+              --tags normal \
+              --users "$users" \
+              --spawn-rate "$users" \
+              --run-time 20s \
+              --csv "artifacts/production_activation/load/users-${users}" \
+              --only-summary
+          done
+      - name: Summarize load evidence
+        env:
+          IMAGE_DIGEST: ${{ inputs.image_digest }}
+        run: |
+          uv run python scripts/summarize_staging_load.py \
+            --input-dir artifacts/production_activation/load \
+            --output artifacts/production_activation/load/summary.json \
+            --image-digest "$IMAGE_DIGEST"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: staging-load-baseline
+          path: artifacts/production_activation/load/
+          if-no-files-found: error
