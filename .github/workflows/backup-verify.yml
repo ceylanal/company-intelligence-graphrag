@@ -80,7 +80,7 @@ jobs:
           uv run python scripts/qdrant_snapshot_rehearsal.py \
             --url "$QDRANT_URL" \
             --source-collection "$QDRANT_COLLECTION_NAME" \
-            --restore-collection company_documents_staging_restore_rehearsal \
+            --restore-collection company_documents_staging_restore_rehearsal_v2 \
             --output artifacts/production_activation/disaster_recovery/qdrant-restore.json \
             --execute
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
