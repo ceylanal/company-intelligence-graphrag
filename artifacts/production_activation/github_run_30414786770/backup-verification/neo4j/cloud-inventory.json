@@ -1,0 +1,55 @@
+{
+  "constraints": [],
+  "database": "64a945c7",
+  "generated_at": "2026-07-29T01:42:04.123990+00:00",
+  "indexes": [
+    {
+      "createStatement": "CREATE LOOKUP INDEX `index_1b9dcc97` FOR ()-[r]-() ON EACH type(r)",
+      "entityType": "RELATIONSHIP",
+      "failureMessage": "",
+      "id": 1,
+      "indexProvider": "token-lookup-1.0",
+      "labelsOrTypes": null,
+      "lastRead": null,
+      "name": "index_1b9dcc97",
+      "options": {
+        "indexConfig": {}
+      },
+      "owningConstraint": null,
+      "populationPercent": 100.0,
+      "properties": null,
+      "readCount": 0,
+      "state": "ONLINE",
+      "trackedSince": "2026-07-29T00:33:34.644000000+00:00",
+      "type": "LOOKUP"
+    },
+    {
+      "createStatement": "CREATE LOOKUP INDEX `index_460996c0` FOR (n) ON EACH labels(n)",
+      "entityType": "NODE",
+      "failureMessage": "",
+      "id": 0,
+      "indexProvider": "token-lookup-1.0",
+      "labelsOrTypes": null,
+      "lastRead": null,
+      "name": "index_460996c0",
+      "options": {
+        "indexConfig": {}
+      },
+      "owningConstraint": null,
+      "populationPercent": 100.0,
+      "properties": null,
+      "readCount": 0,
+      "state": "ONLINE",
+      "trackedSince": "2026-07-29T00:33:34.643000000+00:00",
+      "type": "LOOKUP"
+    }
+  ],
+  "labels": {},
+  "nodes_with_provenance": 0,
+  "orphan_nodes": 0,
+  "relationship_types": {},
+  "sample_nodes": [],
+  "schema_version": "1.0.0",
+  "total_nodes": 0,
+  "total_relationships": 0
+}

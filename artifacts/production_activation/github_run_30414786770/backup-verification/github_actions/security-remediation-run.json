@@ -1,0 +1,93 @@
+{
+  "schema_version": "1.0.0",
+  "captured_at": "2026-07-28T23:00:18Z",
+  "repository": "ceylanal/company-intelligence-graphrag",
+  "pull_request": {
+    "number": 11,
+    "url": "https://github.com/ceylanal/company-intelligence-graphrag/pull/11"
+  },
+  "tested_head_sha": "4449a11673bd7a1e0f6ecf35294792785e27d221",
+  "dependency_remediation": {
+    "fastembed": {
+      "from": "0.5.1",
+      "to": "0.8.0"
+    },
+    "pillow": {
+      "from": "10.4.0",
+      "to": "12.3.0"
+    },
+    "original_high_findings": 13,
+    "remaining_high_or_critical_findings": 0,
+    "embedding_contract": "CLS pooling, normalized, 384 dimensions"
+  },
+  "workflow_runs": {
+    "ci": {
+      "id": 30406163831,
+      "conclusion": "success",
+      "url": "https://github.com/ceylanal/company-intelligence-graphrag/actions/runs/30406163831",
+      "jobs": {
+        "quality": {
+          "id": 90431949217,
+          "conclusion": "success"
+        },
+        "secret-scan": {
+          "id": 90431949289,
+          "conclusion": "success"
+        },
+        "container": {
+          "id": 90432379677,
+          "conclusion": "success"
+        }
+      }
+    },
+    "scheduled_security": {
+      "id": 30406188636,
+      "conclusion": "success",
+      "url": "https://github.com/ceylanal/company-intelligence-graphrag/actions/runs/30406188636",
+      "job_id": 90432030033,
+      "trivy_high_or_critical_findings": 0,
+      "gitleaks_result": "PASS",
+      "gitleaks_commits_scanned": 23
+    },
+    "release_candidate": {
+      "id": 30406190225,
+      "conclusion": "success",
+      "url": "https://github.com/ceylanal/company-intelligence-graphrag/actions/runs/30406190225",
+      "job_id": 90432033026,
+      "publish": false,
+      "ghcr_push": "SKIPPED",
+      "cosign": "SKIPPED"
+    }
+  },
+  "quality_evidence": {
+    "tests": 260,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "coverage_line_rate": 0.8025,
+    "ruff": "PASS",
+    "mypy": "PASS",
+    "version_consistency": "PASS",
+    "representative_eval_regression": "PASS"
+  },
+  "container_evidence": {
+    "non_root_user": "appuser",
+    "smoke": "PASS",
+    "compose_readiness": "PASS",
+    "dependency_failure_readiness": "PASS",
+    "trivy_critical_findings": 0,
+    "sbom_format": "SPDX-2.3",
+    "sbom_packages": 230
+  },
+  "release_eval_evidence": {
+    "samples": 34,
+    "status": "CONDITIONAL PASS — KNOWN LIMITATIONS",
+    "live_staging_baseline": false
+  },
+  "production_state": {
+    "ghcr_published": false,
+    "cosign_verified": false,
+    "staging_deployed": false,
+    "production_deployed": false
+  }
+}

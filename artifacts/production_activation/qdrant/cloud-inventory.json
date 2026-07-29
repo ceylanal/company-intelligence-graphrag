@@ -1,0 +1,15 @@
+{
+  "collection": "company_documents_staging",
+  "exists": false,
+  "generated_at": "2026-07-29T01:42:01.759582+00:00",
+  "id_payload_checksum_sha256": null,
+  "optimizer_status": "none",
+  "payload_schema": {},
+  "points_count": 0,
+  "sample_point_ids": [],
+  "scanned_points_count": 0,
+  "schema_version": "1.0.0",
+  "status": "NOT_FOUND",
+  "storage_bytes": null,
+  "vectors": null
+}
