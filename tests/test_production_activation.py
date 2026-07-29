@@ -72,3 +72,5 @@ def test_cloud_run_has_runtime_memory_headroom_and_unique_ci_revision() -> None:
     assert 'CLOUD_RUN_MEMORY:=2Gi' in deploy_script
     assert '--memory "$CLOUD_RUN_MEMORY"' in deploy_script
     assert 'GITHUB_RUN_ID' in deploy_script
+    assert "CHECKPOINT_DIR=/tmp/company-graphrag/checkpoints" in deploy_script
+    assert "RUN_MANIFEST_DIR=/tmp/company-graphrag/run-manifests" in deploy_script
