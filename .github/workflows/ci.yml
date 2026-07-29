@@ -52,7 +52,7 @@ jobs:
         run: uv run company-graphrag eval-regression-check
       - name: Activation manifest
         run: uv run python scripts/generate_activation_manifest.py
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: quality-reports
@@ -126,7 +126,7 @@ jobs:
           image: company-graphrag:ci
           format: spdx-json
           output-file: sbom.spdx.json
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: supply-chain-reports
