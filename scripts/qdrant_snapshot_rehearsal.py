@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import sys
 import time
 from datetime import UTC, datetime
 from pathlib import Path
@@ -13,6 +14,10 @@ from typing import Any, cast
 
 from qdrant_client import QdrantClient
 from qdrant_client.models import SnapshotPriority
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(PROJECT_ROOT))
+
 from scripts.qdrant_activation import inventory
 
 
