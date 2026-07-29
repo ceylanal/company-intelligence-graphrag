@@ -33,6 +33,17 @@ def inventory(uri: str, username: str, password_env: str, database: str) -> dict
 
         with driver.session(database=target_db) as session:
             total_nodes = session.run("MATCH (n) RETURN count(n) AS count").single()["count"]
+            if total_nodes == 0 and target_db != "neo4j":
+                try:
+                    with driver.session(database="neo4j") as fallback_session:
+                        fallback_count = fallback_session.run("MATCH (n) RETURN count(n) AS count").single()["count"]
+                        if fallback_count > 0:
+                            target_db = "neo4j"
+                except Exception:
+                    pass
+
+        with driver.session(database=target_db) as session:
+            total_nodes = session.run("MATCH (n) RETURN count(n) AS count").single()["count"]
             total_relationships = session.run("MATCH ()-[r]->() RETURN count(r) AS count").single()["count"]
             labels = {
                 row["label"]: row["count"]
