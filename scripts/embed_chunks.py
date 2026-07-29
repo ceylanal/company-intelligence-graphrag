@@ -2,6 +2,7 @@
 """CLI script for batch embedding text chunks and loading into Qdrant vector DB."""
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
