@@ -16,6 +16,7 @@ set -eu
 : "${LLM_MODEL:=mock-v1}"
 : "${OPIK_WORKSPACE:?OPIK_WORKSPACE is required}"
 : "${OTEL_EXPORTER_OTLP_ENDPOINT:?OTEL_EXPORTER_OTLP_ENDPOINT is required}"
+: "${CLOUD_RUN_MEMORY:=2Gi}"
 
 case "$IMAGE_DIGEST" in
   sha256:*) ;;
@@ -23,7 +24,12 @@ case "$IMAGE_DIGEST" in
 esac
 
 image="${ARTIFACT_REGISTRY_IMAGE}@${IMAGE_DIGEST}"
-revision_suffix="sha-$(printf '%s' "${IMAGE_DIGEST#sha256:}" | cut -c1-12)"
+digest_prefix="$(printf '%s' "${IMAGE_DIGEST#sha256:}" | cut -c1-12)"
+revision_suffix="sha-${digest_prefix}"
+if [ -n "${GITHUB_RUN_ID:-}" ]; then
+  run_suffix="$(printf '%s' "$GITHUB_RUN_ID" | tail -c 8)"
+  revision_suffix="sha-$(printf '%s' "$digest_prefix" | cut -c1-8)-run-${run_suffix}"
+fi
 
 gcloud run deploy "$CLOUD_RUN_SERVICE" \
   --project "$GCP_PROJECT_ID" \
@@ -37,7 +43,7 @@ gcloud run deploy "$CLOUD_RUN_SERVICE" \
   --concurrency 4 \
   --timeout 300 \
   --cpu 1 \
-  --memory 1Gi \
+  --memory "$CLOUD_RUN_MEMORY" \
   --cpu-throttling \
   --ingress all \
   --no-allow-unauthenticated \

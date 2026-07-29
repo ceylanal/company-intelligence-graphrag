@@ -64,3 +64,11 @@ def test_private_cloud_run_grants_only_deployer_invocation() -> None:
     assert "--no-allow-unauthenticated" in deploy_script
     assert 'serviceAccount:${GCP_SERVICE_ACCOUNT}' in deploy_script
     assert 'roles/run.invoker' in deploy_script
+
+
+def test_cloud_run_has_runtime_memory_headroom_and_unique_ci_revision() -> None:
+    deploy_script = Path("scripts/deploy_cloud_run.sh").read_text(encoding="utf-8")
+
+    assert 'CLOUD_RUN_MEMORY:=2Gi' in deploy_script
+    assert '--memory "$CLOUD_RUN_MEMORY"' in deploy_script
+    assert 'GITHUB_RUN_ID' in deploy_script
