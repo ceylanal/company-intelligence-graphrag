@@ -29,9 +29,12 @@ jobs:
         run: test "${IMAGE_DIGEST#sha256:}" != "${IMAGE_DIGEST}" && test "${#IMAGE_DIGEST}" -eq 71
       - uses: google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed # v2
         if: inputs.execute
+        id: gcp-auth
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          id_token_audience: https://company-graphrag-staging-77096651349.europe-west1.run.app
+          id_token_include_email: true
       - uses: google-github-actions/setup-gcloud@e427ad8a34f8676edf47cf7d7925499adf3eb74f # v2
         if: inputs.execute
       - name: Deploy guarded staging revision
@@ -62,7 +65,7 @@ jobs:
         run: |
           uv sync --frozen
           SERVICE_URL=$(gcloud run services describe ${{ vars.CLOUD_RUN_SERVICE }} --region ${{ vars.GCP_REGION }} --format 'value(status.url)')
-          TOKEN=$(gcloud auth print-identity-token --audiences="$SERVICE_URL" --impersonate-service-account="${{ secrets.GCP_SERVICE_ACCOUNT }}")
+          TOKEN="${{ steps.gcp-auth.outputs.id_token }}"
           GOOGLE_IDENTITY_TOKEN="$TOKEN" uv run python scripts/staging_smoke.py --base-url "$SERVICE_URL"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always() && inputs.execute
