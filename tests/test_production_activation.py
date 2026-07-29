@@ -8,6 +8,7 @@ from pathlib import Path
 import yaml
 from scripts.generate_activation_manifest import build_activation_manifest
 from scripts.neo4j_activation import migrate as migrate_neo4j
+from scripts.qdrant_activation import REQUIRED_PAYLOAD_INDEXES, ensure_payload_indexes
 
 
 def test_activation_manifest_never_contains_secret_values(monkeypatch: object) -> None:
@@ -74,3 +75,33 @@ def test_cloud_run_has_runtime_memory_headroom_and_unique_ci_revision() -> None:
     assert 'GITHUB_RUN_ID' in deploy_script
     assert "CHECKPOINT_DIR=/tmp/company-graphrag/checkpoints" in deploy_script
     assert "RUN_MANIFEST_DIR=/tmp/company-graphrag/run-manifests" in deploy_script
+
+
+def test_qdrant_activation_creates_only_missing_retrieval_indexes() -> None:
+    class CollectionInfo:
+        payload_schema = {"ticker": {"data_type": "keyword"}}
+
+    class FakeClient:
+        def __init__(self) -> None:
+            self.created: list[tuple[str, str, object, bool]] = []
+
+        def get_collection(self, collection: str) -> CollectionInfo:
+            assert collection == "company_documents_staging"
+            return CollectionInfo()
+
+        def create_payload_index(
+            self,
+            *,
+            collection_name: str,
+            field_name: str,
+            field_schema: object,
+            wait: bool,
+        ) -> None:
+            self.created.append((collection_name, field_name, field_schema, wait))
+
+    client = FakeClient()
+    report = ensure_payload_indexes(client, "company_documents_staging")  # type: ignore[arg-type]
+
+    assert report["created_indexes"] == ["year", "company", "report_type", "language"]
+    assert {item[1] for item in client.created} == set(REQUIRED_PAYLOAD_INDEXES) - {"ticker"}
+    assert all(item[0] == "company_documents_staging" and item[3] for item in client.created)

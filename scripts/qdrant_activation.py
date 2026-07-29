@@ -12,7 +12,15 @@ from pathlib import Path
 from typing import Any, cast
 
 from qdrant_client import QdrantClient
-from qdrant_client.models import PointStruct, VectorParams
+from qdrant_client.models import PayloadSchemaType, PointStruct, VectorParams
+
+REQUIRED_PAYLOAD_INDEXES = {
+    "ticker": PayloadSchemaType.KEYWORD,
+    "year": PayloadSchemaType.INTEGER,
+    "company": PayloadSchemaType.KEYWORD,
+    "report_type": PayloadSchemaType.KEYWORD,
+    "language": PayloadSchemaType.KEYWORD,
+}
 
 
 def _client(*, path: str | None, url: str | None, api_key_env: str) -> QdrantClient:
@@ -102,6 +110,29 @@ def inventory(client: QdrantClient, collection: str, storage_path: str | None = 
     }
 
 
+def ensure_payload_indexes(client: QdrantClient, collection: str) -> dict[str, Any]:
+    """Create the payload indexes required by production retrieval filters."""
+    info = client.get_collection(collection)
+    existing = set(info.payload_schema)
+    created: list[str] = []
+    for field_name, field_schema in REQUIRED_PAYLOAD_INDEXES.items():
+        if field_name in existing:
+            continue
+        client.create_payload_index(
+            collection_name=collection,
+            field_name=field_name,
+            field_schema=field_schema,
+            wait=True,
+        )
+        created.append(field_name)
+    return {
+        "status": "COMPLETED",
+        "collection": collection,
+        "required_indexes": sorted(REQUIRED_PAYLOAD_INDEXES),
+        "created_indexes": created,
+    }
+
+
 def migrate(
     source: QdrantClient,
     target: QdrantClient,
@@ -149,6 +180,7 @@ def migrate(
             batches += 1
         if offset is None:
             break
+    index_report = ensure_payload_indexes(target, target_collection)
     return {
         "status": "COMPLETED",
         "source_collection": source_collection,
@@ -156,6 +188,7 @@ def migrate(
         "migrated_points": migrated,
         "batches": batches,
         "batch_size": batch_size,
+        "payload_indexes": index_report,
     }
 
 
@@ -187,6 +220,12 @@ def main() -> None:
     mig.add_argument("--batch-size", type=int, default=128)
     mig.add_argument("--execute", action="store_true")
     mig.add_argument("--output", type=Path, required=True)
+
+    indexes = subparsers.add_parser("ensure-indexes")
+    indexes.add_argument("--url", required=True)
+    indexes.add_argument("--api-key-env", default="QDRANT_API_KEY")
+    indexes.add_argument("--collection", required=True)
+    indexes.add_argument("--output", type=Path, required=True)
 
     compare = subparsers.add_parser("compare")
     compare.add_argument("--source", type=Path, required=True)
@@ -220,6 +259,12 @@ def main() -> None:
         finally:
             source.close()
             target.close()
+    elif args.command == "ensure-indexes":
+        client = _client(path=None, url=args.url, api_key_env=args.api_key_env)
+        try:
+            _write(args.output, ensure_payload_indexes(client, args.collection))
+        finally:
+            client.close()
     else:
         source_report = json.loads(args.source.read_text(encoding="utf-8"))
         target_report = json.loads(args.target.read_text(encoding="utf-8"))
