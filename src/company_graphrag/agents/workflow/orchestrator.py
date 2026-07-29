@@ -13,6 +13,7 @@ from company_graphrag.agents.supervisor import SupervisorAgent
 from company_graphrag.agents.verifier import EvidenceVerifierAgent
 from company_graphrag.agents.workflow.checkpoint import JSONCheckpointSaver
 from company_graphrag.agents.writer import ReportWriterAgent
+from company_graphrag.config import settings
 from company_graphrag.observability.tracing import span
 from company_graphrag.versioning.manifest import build_run_manifest, save_run_manifest
 
@@ -59,7 +60,7 @@ class ResearchWorkflow:
         verifier: EvidenceVerifierAgent | None = None,
         writer: ReportWriterAgent | None = None,
     ):
-        self.saver = checkpoint_saver or JSONCheckpointSaver()
+        self.saver = checkpoint_saver or JSONCheckpointSaver(settings.checkpoint_dir)
         self.auto_approve_interrupts = auto_approve_interrupts
 
         self.planner = planner or PlannerAgent()

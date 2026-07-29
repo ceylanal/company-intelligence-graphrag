@@ -1,0 +1,147 @@
+{
+  "base_url": "https://company-graphrag-staging-c6oeawtcxq-ew.a.run.app",
+  "generated_at": "2026-07-29T02:42:54.771342+00:00",
+  "results": [
+    {
+      "correlation": {
+        "request_id": "req_e914203ea97949cbaa594dad0e7aaf64",
+        "run_id": "run_3c904fbc0a704d63",
+        "trace_id": "215052acb1504d5982eb6851d3e08d5d"
+      },
+      "duration_ms": 11993.62,
+      "expected_statuses": [
+        200
+      ],
+      "http_status": 200,
+      "name": "liveness",
+      "response": {
+        "environment": "staging",
+        "status": "live"
+      },
+      "status": "PASS"
+    },
+    {
+      "correlation": {
+        "request_id": "req_b561141c538c4b56b202b7bf7f4c70e9",
+        "run_id": "run_bdffd1a7a6ff4cba",
+        "trace_id": "4ab0c562d6034d90a6fd759097ea899d"
+      },
+      "duration_ms": 654.88,
+      "expected_statuses": [
+        200
+      ],
+      "http_status": 503,
+      "name": "readiness",
+      "response": {
+        "components": {
+          "neo4j": {
+            "latency_ms": 216.28,
+            "status": "ok"
+          },
+          "qdrant": {
+            "details": "HTTP status 403",
+            "status": "error"
+          }
+        },
+        "environment": "staging",
+        "status": "unhealthy"
+      },
+      "status": "FAIL"
+    },
+    {
+      "correlation": {
+        "request_id": "req_31fb05c2288a4a29b838bca1c27cda93",
+        "run_id": "run_0b44c07cd06441eb",
+        "trace_id": "4912b50c129c46d8bf0a7c04b2c11776"
+      },
+      "duration_ms": 139.36,
+      "expected_statuses": [
+        200
+      ],
+      "http_status": 200,
+      "name": "version",
+      "response": {
+        "config_hash": "e12f81883ea9520909fe8119146775430c80b7b57aee0d5e82cd02ccf60b6688",
+        "environment": "staging",
+        "git_commit_sha": "unknown",
+        "manifest_schema_version": "1.0.0",
+        "name": "company-graphrag",
+        "prompt_bundle_version": "1.0.0",
+        "python_version": "3.12.13",
+        "version": "0.1.0",
+        "workflow_version": "1.0.0"
+      },
+      "status": "PASS"
+    },
+    {
+      "correlation": {
+        "request_id": "req_3d7093ff9f814560a2ea1d54987ecb30",
+        "run_id": "run_b5ad9032954d4571",
+        "trace_id": "1efa3bf417b94b26b459cd6a99dd9ddc"
+      },
+      "duration_ms": 124.61,
+      "expected_statuses": [
+        422
+      ],
+      "http_status": 422,
+      "name": "invalid_request",
+      "response": {
+        "detail": [
+          {
+            "ctx": {
+              "min_length": 3
+            },
+            "input": "x",
+            "loc": [
+              "body",
+              "query"
+            ],
+            "msg": "String should have at least 3 characters",
+            "type": "string_too_short"
+          }
+        ]
+      },
+      "status": "PASS"
+    },
+    {
+      "correlation": {
+        "request_id": null,
+        "run_id": null,
+        "trace_id": null
+      },
+      "duration_ms": 275.35,
+      "expected_statuses": [
+        401
+      ],
+      "http_status": 403,
+      "name": "authentication_rejects_missing_key",
+      "response": {
+        "text_length": 303
+      },
+      "status": "FAIL"
+    },
+    {
+      "correlation": {
+        "request_id": "req_a2e40017303c442184e9d4303d085f48",
+        "run_id": "run_0abae5339819428e",
+        "trace_id": "a1bebb53ba69436eb748249ef185b39f"
+      },
+      "duration_ms": 118.17,
+      "expected_statuses": [
+        200
+      ],
+      "http_status": 503,
+      "name": "bounded_research",
+      "response": {
+        "detail": "Research workflow failed: PermissionError"
+      },
+      "status": "FAIL"
+    }
+  ],
+  "schema_version": "1.0.0",
+  "summary": {
+    "failed": 3,
+    "passed": 3,
+    "total": 6
+  }
+}

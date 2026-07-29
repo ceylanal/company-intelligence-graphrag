@@ -17,6 +17,7 @@ def test_settings_default_values() -> None:
     assert settings.neo4j_username == "neo4j"
     assert settings.neo4j_password == "password"
     assert settings.neo4j_database == "neo4j"
+    assert settings.checkpoint_dir == "data/checkpoints"
 
 
 def test_settings_effective_urls() -> None:
@@ -30,7 +31,9 @@ def test_settings_env_override(monkeypatch: pytest.MonkeyPatch) -> None:
     """Verify settings can be overridden via environment variables."""
     monkeypatch.setenv("QDRANT_HOST", "qdrant.local")
     monkeypatch.setenv("NEO4J_URI", "bolt://neo4j.local:7687")
+    monkeypatch.setenv("CHECKPOINT_DIR", "/tmp/company-graphrag/checkpoints")
 
     custom_settings = Settings()
     assert custom_settings.qdrant_host == "qdrant.local"
     assert custom_settings.neo4j_uri == "bolt://neo4j.local:7687"
+    assert custom_settings.checkpoint_dir == "/tmp/company-graphrag/checkpoints"

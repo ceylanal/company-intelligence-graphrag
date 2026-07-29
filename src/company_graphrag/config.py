@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     app_port: int = Field(default=8000, ge=1, le=65535, description="FastAPI server port")
     app_version: str = Field(default="0.1.0", description="Deployed application version")
     git_commit_sha: str = Field(default="unknown", description="Build-time source revision")
+    checkpoint_dir: str = Field(default="data/checkpoints", description="Durable workflow checkpoint directory")
     shutdown_grace_period_seconds: float = Field(default=10.0, gt=0)
     health_timeout_seconds: float = Field(default=3.0, gt=0)
     request_max_bytes: int = Field(default=1_048_576, ge=1024)

@@ -1,11 +1,14 @@
 """Unit and integration tests for FastAPI application and health endpoints."""
 
-from unittest.mock import AsyncMock, patch
+import asyncio
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 from fastapi.testclient import TestClient
+from httpx import Response
 
 from company_graphrag.api.app import app
+from company_graphrag.api.health import check_qdrant_health
 from company_graphrag.config import Settings
 
 
@@ -42,6 +45,27 @@ def test_root_endpoint(client: TestClient) -> None:
     data = response.json()
     assert data["message"] == "Company Intelligence GraphRAG API"
     assert data["docs"] == "/docs"
+
+
+def test_qdrant_health_authenticates_cloud_request() -> None:
+    """Verify the readiness check authenticates against a protected Qdrant cluster."""
+    response = Response(200)
+    client = AsyncMock()
+    client.get.return_value = response
+    context_manager = Mock()
+    context_manager.__aenter__ = AsyncMock(return_value=client)
+    context_manager.__aexit__ = AsyncMock(return_value=None)
+
+    with (
+        patch("company_graphrag.api.health.settings.qdrant_api_key", "secret-qdrant-key"),
+        patch("company_graphrag.api.health.httpx.AsyncClient", return_value=context_manager),
+    ):
+        healthy, details = asyncio.run(check_qdrant_health())
+
+    assert healthy
+    assert details["status"] == "ok"
+    client.get.assert_awaited_once()
+    assert client.get.await_args.kwargs["headers"] == {"api-key": "secret-qdrant-key"}
 
 
 @patch("company_graphrag.api.health.check_qdrant_health")

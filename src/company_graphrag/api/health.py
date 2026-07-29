@@ -22,10 +22,11 @@ router = APIRouter(tags=["Health & Status"])
 async def check_qdrant_health() -> tuple[bool, dict[str, Any]]:
     """Verify connection health to Qdrant REST service."""
     url = f"{settings.effective_qdrant_url}/healthz"
+    headers = {"api-key": settings.qdrant_api_key} if settings.qdrant_api_key else None
     try:
         started = time.monotonic()
         async with httpx.AsyncClient(timeout=settings.health_timeout_seconds) as client:
-            res = await client.get(url)
+            res = await client.get(url, headers=headers)
             DEPENDENCY_LATENCY.labels("qdrant", "health").observe(time.monotonic() - started)
             if res.status_code == 200:
                 return True, {"status": "ok", "latency_ms": round((time.monotonic() - started) * 1000, 2)}

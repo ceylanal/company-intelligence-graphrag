@@ -93,6 +93,9 @@ def main() -> None:
             json_body={"query": "x"},
         )
         if api_key:
+            platform_headers = {
+                key: value for key, value in auth_headers.items() if key.lower() != "x-api-key"
+            }
             _record(
                 results,
                 name="authentication_rejects_missing_key",
@@ -100,6 +103,7 @@ def main() -> None:
                 url=f"{base_url}/research",
                 expected={401},
                 client=client,
+                headers=platform_headers,
                 json_body={"query": "bounded staging authentication check"},
             )
         if args.research_query:
