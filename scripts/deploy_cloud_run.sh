@@ -3,6 +3,7 @@ set -eu
 
 : "${GCP_PROJECT_ID:?GCP_PROJECT_ID is required}"
 : "${GCP_REGION:?GCP_REGION is required}"
+: "${GCP_SERVICE_ACCOUNT:?GCP_SERVICE_ACCOUNT is required}"
 : "${CLOUD_RUN_SERVICE:?CLOUD_RUN_SERVICE is required}"
 : "${ARTIFACT_REGISTRY_IMAGE:?ARTIFACT_REGISTRY_IMAGE is required}"
 : "${IMAGE_DIGEST:?IMAGE_DIGEST is required}"
@@ -27,6 +28,7 @@ revision_suffix="sha-$(printf '%s' "${IMAGE_DIGEST#sha256:}" | cut -c1-12)"
 gcloud run deploy "$CLOUD_RUN_SERVICE" \
   --project "$GCP_PROJECT_ID" \
   --region "$GCP_REGION" \
+  --service-account "$GCP_SERVICE_ACCOUNT" \
   --image "$image" \
   --revision-suffix "$revision_suffix" \
   --execution-environment gen2 \
