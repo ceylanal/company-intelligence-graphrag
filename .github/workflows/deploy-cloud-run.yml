@@ -62,7 +62,7 @@ jobs:
         run: |
           uv sync --frozen
           SERVICE_URL=$(gcloud run services describe ${{ vars.CLOUD_RUN_SERVICE }} --region ${{ vars.GCP_REGION }} --format 'value(status.url)')
-          TOKEN=$(gcloud auth print-identity-token --audiences="$SERVICE_URL")
+          TOKEN=$(gcloud auth print-identity-token --audiences="$SERVICE_URL" --impersonate-service-account="${{ secrets.GCP_SERVICE_ACCOUNT }}")
           GOOGLE_IDENTITY_TOKEN="$TOKEN" uv run python scripts/staging_smoke.py --base-url "$SERVICE_URL"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always() && inputs.execute
