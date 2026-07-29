@@ -25,22 +25,18 @@ def inventory(uri: str, username: str, password_env: str, database: str) -> dict
     try:
         driver.verify_connectivity()
         target_db = database
+        
+        # Test custom database first
         try:
             with driver.session(database=target_db) as session:
-                session.run("RETURN 1").single()
+                cnt = session.run("MATCH (n) RETURN count(n) AS count").single()["count"]
+                if cnt == 0 and target_db != "neo4j":
+                    with driver.session(database="neo4j") as fallback_session:
+                        fallback_cnt = fallback_session.run("MATCH (n) RETURN count(n) AS count").single()["count"]
+                        if fallback_cnt > 0:
+                            target_db = "neo4j"
         except Exception:
             target_db = "neo4j"
-
-        with driver.session(database=target_db) as session:
-            total_nodes = session.run("MATCH (n) RETURN count(n) AS count").single()["count"]
-            if total_nodes == 0 and target_db != "neo4j":
-                try:
-                    with driver.session(database="neo4j") as fallback_session:
-                        fallback_count = fallback_session.run("MATCH (n) RETURN count(n) AS count").single()["count"]
-                        if fallback_count > 0:
-                            target_db = "neo4j"
-                except Exception:
-                    pass
 
         with driver.session(database=target_db) as session:
             total_nodes = session.run("MATCH (n) RETURN count(n) AS count").single()["count"]
@@ -83,7 +79,7 @@ def inventory(uri: str, username: str, password_env: str, database: str) -> dict
     return {
         "schema_version": "1.0.0",
         "generated_at": datetime.now(UTC).isoformat(),
-        "database": database,
+        "database": target_db,
         "total_nodes": total_nodes,
         "total_relationships": total_relationships,
         "labels": labels,
