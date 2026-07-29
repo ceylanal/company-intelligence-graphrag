@@ -88,9 +88,60 @@ jobs:
           API_KEY="$API_KEY" uv run python scripts/staging_smoke.py \
             --base-url "$SERVICE_URL" \
             --research-query "ASELSAN 2024 toplam hasılatı ve ilgili yönetici hakkında kaynaklı kısa bir özet ver."
+      - name: Run frozen staging evaluation baseline
+        if: inputs.execute
+        env:
+          SERVICE_URL: ${{ steps.deploy.outputs.service_url }}
+          GOOGLE_IDENTITY_TOKEN: ${{ steps.smoke-auth.outputs.id_token }}
+          IMAGE_DIGEST: ${{ inputs.image_digest }}
+        run: |
+          API_KEY=$(gcloud secrets versions access latest \
+            --project "${{ vars.GCP_PROJECT_ID }}" \
+            --secret company-graphrag-api-key)
+          echo "::add-mask::$API_KEY"
+          API_KEY="$API_KEY" uv run python scripts/staging_baseline.py \
+            --base-url "$SERVICE_URL" \
+            --image-digest "$IMAGE_DIGEST" \
+            --max-samples 34
+      - name: Run bounded 1, 5, and 10 user load stages
+        if: inputs.execute
+        env:
+          SERVICE_URL: ${{ steps.deploy.outputs.service_url }}
+          GOOGLE_IDENTITY_TOKEN: ${{ steps.smoke-auth.outputs.id_token }}
+          IMAGE_DIGEST: ${{ inputs.image_digest }}
+        run: |
+          mkdir -p artifacts/production_activation/load
+          for users in 1 5 10; do
+            uv run locust \
+              -f tests/load/locustfile.py \
+              --headless \
+              --host "$SERVICE_URL" \
+              --tags normal \
+              --users "$users" \
+              --spawn-rate "$users" \
+              --run-time 20s \
+              --csv "artifacts/production_activation/load/users-${users}" \
+              --only-summary
+          done
+          uv run python scripts/summarize_staging_load.py \
+            --input-dir artifacts/production_activation/load \
+            --output artifacts/production_activation/load/summary.json \
+            --image-digest "$IMAGE_DIGEST"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always() && inputs.execute
         with:
           name: staging-smoke-results
           path: artifacts/production_activation/staging/smoke.json
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always() && inputs.execute
+        with:
+          name: staging-eval-baseline
+          path: artifacts/production_activation/evals/
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always() && inputs.execute
+        with:
+          name: staging-load-baseline
+          path: artifacts/production_activation/load/
           if-no-files-found: warn
