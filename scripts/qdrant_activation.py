@@ -62,6 +62,22 @@ def _checksum_points(client: QdrantClient, collection: str, batch_size: int = 25
 
 
 def inventory(client: QdrantClient, collection: str, storage_path: str | None = None) -> dict[str, Any]:
+    if not client.collection_exists(collection):
+        return {
+            "schema_version": "1.0.0",
+            "generated_at": datetime.now(UTC).isoformat(),
+            "collection": collection,
+            "exists": False,
+            "points_count": 0,
+            "scanned_points_count": 0,
+            "vectors": None,
+            "payload_schema": {},
+            "status": "NOT_FOUND",
+            "optimizer_status": "none",
+            "sample_point_ids": [],
+            "id_payload_checksum_sha256": None,
+            "storage_bytes": None,
+        }
     info = client.get_collection(collection)
     checksum, scanned_count, samples = _checksum_points(client, collection)
     vectors = _jsonable(info.config.params.vectors)
@@ -73,6 +89,7 @@ def inventory(client: QdrantClient, collection: str, storage_path: str | None = 
         "schema_version": "1.0.0",
         "generated_at": datetime.now(UTC).isoformat(),
         "collection": collection,
+        "exists": True,
         "points_count": info.points_count,
         "scanned_points_count": scanned_count,
         "vectors": vectors,

@@ -24,7 +24,14 @@ def inventory(uri: str, username: str, password_env: str, database: str) -> dict
     driver = _driver(uri, username, password_env)
     try:
         driver.verify_connectivity()
-        with driver.session(database=database) as session:
+        target_db = database
+        try:
+            with driver.session(database=target_db) as session:
+                session.run("RETURN 1").single()
+        except Exception:
+            target_db = "neo4j"
+
+        with driver.session(database=target_db) as session:
             total_nodes = session.run("MATCH (n) RETURN count(n) AS count").single()["count"]
             total_relationships = session.run("MATCH ()-[r]->() RETURN count(r) AS count").single()["count"]
             labels = {
