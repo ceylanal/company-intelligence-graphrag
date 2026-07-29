@@ -87,6 +87,7 @@ def migrate(
     password_env: str,
     database: str,
     input_dir: Path,
+    checkpoint_path: Path | None,
     execute: bool,
 ) -> dict[str, Any]:
     if not execute:
@@ -95,6 +96,7 @@ def migrate(
             "uri": uri,
             "database": database,
             "input_dir": str(input_dir),
+            "checkpoint_path": str(checkpoint_path) if checkpoint_path else None,
         }
 
     password = os.environ.get(password_env, "")
@@ -107,7 +109,7 @@ def migrate(
     neo4j_store = Neo4jGraphStore(uri=uri, user=username, password=password, database=database)
     pipeline = GraphIngestionPipeline(neo4j_store=neo4j_store)
 
-    audit = pipeline.run_pipeline(input_dir=input_dir)
+    audit = pipeline.run_pipeline(input_dir=input_dir, checkpoint_path=checkpoint_path)
     neo4j_store.close()
 
     inv = inventory(uri, username, password_env, database)
@@ -116,6 +118,7 @@ def migrate(
         "uri": uri,
         "database": database,
         "input_dir": str(input_dir),
+        "checkpoint_path": str(checkpoint_path) if checkpoint_path else None,
         "audit": audit.model_dump(mode="json"),
         "inventory": inv,
     }
@@ -144,6 +147,11 @@ def main() -> None:
     mig.add_argument("--password-env", default="NEO4J_PASSWORD")
     mig.add_argument("--database", default="neo4j")
     mig.add_argument("--input-dir", type=Path, default=Path("data/graph/sample_day20"))
+    mig.add_argument(
+        "--checkpoint",
+        type=Path,
+        help="Target-specific checkpoint path. Do not reuse a source dataset checkpoint across databases.",
+    )
     mig.add_argument("--execute", action="store_true")
     mig.add_argument("--output", type=Path, required=True)
 
@@ -163,6 +171,7 @@ def main() -> None:
             args.password_env,
             args.database,
             args.input_dir,
+            args.checkpoint,
             args.execute,
         )
         _write(args.output, report)

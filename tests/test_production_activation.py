@@ -7,6 +7,7 @@ from pathlib import Path
 
 import yaml
 from scripts.generate_activation_manifest import build_activation_manifest
+from scripts.neo4j_activation import migrate as migrate_neo4j
 
 
 def test_activation_manifest_never_contains_secret_values(monkeypatch: object) -> None:
@@ -39,3 +40,27 @@ def test_production_release_report_is_blocked_without_external_evidence() -> Non
     report = Path("docs/llmops/production_release_report.md").read_text(encoding="utf-8")
     assert "PRODUCTION_ACTIVATION_BLOCKED" in report
     assert "No deployment" in report
+
+
+def test_neo4j_migration_uses_target_specific_checkpoint(tmp_path: Path) -> None:
+    checkpoint = tmp_path / "staging-checkpoint.json"
+    report = migrate_neo4j(
+        uri="neo4j+s://example.invalid",
+        username="neo4j",
+        password_env="NEO4J_PASSWORD",
+        database="staging",
+        input_dir=Path("data/graph/sample_day19"),
+        checkpoint_path=checkpoint,
+        execute=False,
+    )
+
+    assert report["status"] == "DRY_RUN"
+    assert report["checkpoint_path"] == str(checkpoint)
+
+
+def test_private_cloud_run_grants_only_deployer_invocation() -> None:
+    deploy_script = Path("scripts/deploy_cloud_run.sh").read_text(encoding="utf-8")
+
+    assert "--no-allow-unauthenticated" in deploy_script
+    assert 'serviceAccount:${GCP_SERVICE_ACCOUNT}' in deploy_script
+    assert 'roles/run.invoker' in deploy_script

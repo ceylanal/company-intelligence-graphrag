@@ -50,7 +50,8 @@ jobs:
             --uri "$NEO4J_URI" \
             --username "$NEO4J_USERNAME" \
             --database "$NEO4J_DATABASE" \
-            --input-dir data/graph/sample_day20 \
+            --input-dir data/graph/sample_day19 \
+            --checkpoint artifacts/production_activation/neo4j/staging-migration-checkpoint.json \
             --execute \
             --output artifacts/production_activation/neo4j/cloud-migration-result.json
       - name: Inventory staging databases

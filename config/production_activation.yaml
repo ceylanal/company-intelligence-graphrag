@@ -8,7 +8,7 @@ environments:
     github_environment: staging
     cloud_run_service: company-graphrag-staging
     qdrant_collection: company_documents_staging
-    neo4j_database: neo4j
+    neo4j_database: 64a945c7
     opik_project: company-graphrag-staging
     grafana_environment: staging
   production:

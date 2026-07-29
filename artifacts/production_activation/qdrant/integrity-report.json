@@ -1,0 +1,12 @@
+{
+  "checks": {
+    "id_payload_checksum": true,
+    "payload_schema": true,
+    "points_count": true,
+    "vectors": true
+  },
+  "schema_version": "1.0.0",
+  "source_collection": "company_documents",
+  "status": "PASS",
+  "target_collection": "company_documents_staging"
+}

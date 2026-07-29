@@ -43,3 +43,12 @@ gcloud run deploy "$CLOUD_RUN_SERVICE" \
   --no-allow-unauthenticated \
   --set-env-vars "ENVIRONMENT=staging,QDRANT_USE_CLOUD=true,QDRANT_URL=${QDRANT_URL},QDRANT_COLLECTION_NAME=${QDRANT_COLLECTION_NAME},NEO4J_USE_CLOUD=true,NEO4J_URI=${NEO4J_URI},NEO4J_USERNAME=${NEO4J_USERNAME},NEO4J_DATABASE=${NEO4J_DATABASE},LLM_PROVIDER=${LLM_PROVIDER},LLM_MODEL=${LLM_MODEL},TELEMETRY_ENABLED=true,TELEMETRY_EXPORTER=otlp,OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT},OPIK_ENABLED=true,OPIK_WORKSPACE=${OPIK_WORKSPACE},TELEMETRY_CAPTURE_PROMPTS=false" \
   --set-secrets "API_KEY=company-graphrag-api-key:latest,LLM_API_KEY=company-graphrag-llm-key:latest,QDRANT_API_KEY=company-graphrag-qdrant-key:latest,NEO4J_PASSWORD=company-graphrag-neo4j-password:latest,OPIK_API_KEY=company-graphrag-opik-key:latest,OTEL_EXPORTER_OTLP_HEADERS=company-graphrag-otel-headers:latest"
+
+# Keep the staging service private while allowing the dedicated deployer identity
+# to run authenticated smoke and rollback verification.
+gcloud run services add-iam-policy-binding "$CLOUD_RUN_SERVICE" \
+  --project "$GCP_PROJECT_ID" \
+  --region "$GCP_REGION" \
+  --member "serviceAccount:${GCP_SERVICE_ACCOUNT}" \
+  --role "roles/run.invoker" \
+  --quiet >/dev/null
