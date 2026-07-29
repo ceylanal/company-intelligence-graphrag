@@ -33,7 +33,7 @@ jobs:
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
-          id_token_audience: https://company-graphrag-staging-77096651349.europe-west1.run.app
+          id_token_audience: https://company-graphrag-staging-c6oeawtcxq-ew.a.run.app
           id_token_include_email: true
       - uses: google-github-actions/setup-gcloud@e427ad8a34f8676edf47cf7d7925499adf3eb74f # v2
         if: inputs.execute
