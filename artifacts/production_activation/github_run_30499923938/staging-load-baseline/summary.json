@@ -1,0 +1,48 @@
+{
+  "schema_version": "1.0.0",
+  "generated_at": "2026-07-29T23:39:15.040921+00:00",
+  "image_digest": "sha256:a0a8b9ae9b20a3c3e745961b2ee63bbde40dd6b626b970f8523924608ace54d3",
+  "scope": "private staging health/readiness/version endpoints; no repeated paid-model traffic",
+  "stages": [
+    {
+      "users": 1,
+      "requests": 30,
+      "failures": 0,
+      "success_rate": 1.0,
+      "failure_rate": 0.0,
+      "p50_latency_ms": 99.0,
+      "p95_latency_ms": 110.0,
+      "p99_latency_ms": 140.0,
+      "max_latency_ms": 137.54281500001753,
+      "requests_per_second": 1.577416700645987
+    },
+    {
+      "users": 5,
+      "requests": 141,
+      "failures": 0,
+      "success_rate": 1.0,
+      "failure_rate": 0.0,
+      "p50_latency_ms": 99.0,
+      "p95_latency_ms": 100.0,
+      "p99_latency_ms": 120.0,
+      "max_latency_ms": 127.9503289999866,
+      "requests_per_second": 7.455945096922947
+    },
+    {
+      "users": 10,
+      "requests": 278,
+      "failures": 0,
+      "success_rate": 1.0,
+      "failure_rate": 0.0,
+      "p50_latency_ms": 98.0,
+      "p95_latency_ms": 110.0,
+      "p99_latency_ms": 130.0,
+      "max_latency_ms": 210.9122250000155,
+      "requests_per_second": 14.638244536270998
+    }
+  ],
+  "total_requests": 449,
+  "total_failures": 0,
+  "provider_fallback_rate": null,
+  "provider_fallback_note": "Not exercised by the bounded health-only load profile."
+}

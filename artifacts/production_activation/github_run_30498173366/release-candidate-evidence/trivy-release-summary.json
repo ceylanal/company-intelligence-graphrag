@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "source_workflow_run": 30498173366,
+  "source_artifact": "release-candidate-evidence",
+  "scanner": "trivy",
+  "artifact_name": "company-graphrag:release-gate",
+  "artifact_type": "container_image",
+  "image_id": "sha256:f9bf111c386f9042d6f0903e1de9cd7f4950a8383f22d7fb80e369244df0a6f3",
+  "targets": [
+    {
+      "name": "company-graphrag:release-gate (debian 13.6)",
+      "class": "os-pkgs",
+      "type": "debian",
+      "vulnerability_count": 0,
+      "misconfiguration_count": 0,
+      "secret_count": 0,
+      "license_count": 0
+    },
+    {
+      "name": "Python",
+      "class": "lang-pkgs",
+      "type": "python-pkg",
+      "vulnerability_count": 0,
+      "misconfiguration_count": 0,
+      "secret_count": 0,
+      "license_count": 0
+    }
+  ],
+  "severity_gate": {
+    "high": 0,
+    "critical": 0,
+    "passed": true
+  },
+  "sanitization_note": "Summary intentionally excludes base-image metadata and environment values from the raw scanner output."
+}

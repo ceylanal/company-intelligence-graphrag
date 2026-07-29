@@ -1,0 +1,25 @@
+{
+  "schema_version": "1.0.0",
+  "generated_at": "2026-07-29T23:43:42Z",
+  "status": "PASS",
+  "service": "company-graphrag-staging",
+  "production_touched": false,
+  "bad_revision": {
+    "name": "company-graphrag-staging-sha-9b1f6433d3b8",
+    "memory": "1Gi",
+    "traffic_percent": 100,
+    "traffic_switch_started_at": "2026-07-29T23:40:16Z",
+    "research_http_status": 503,
+    "research_duration_seconds": 12,
+    "response_bytes": 19
+  },
+  "recovery_revision": {
+    "name": "company-graphrag-staging-sha-a0a8b9ae-run-99923938",
+    "memory": "2Gi",
+    "traffic_percent": 100,
+    "recovery_started_at": "2026-07-29T23:41:46Z",
+    "readiness_http_status": 200,
+    "research_http_status": 200,
+    "recovery_duration_seconds": 28
+  }
+}

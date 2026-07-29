@@ -1,99 +1,178 @@
 {
-  "activation_status": {
-    "cloud_run_staging": "BLOCKED_BY_PREREQUISITES",
-    "cosign": "SIGNATURE_PENDING",
-    "ghcr": "GHCR_PUBLISH_PENDING",
-    "github_actions": "NOT_VERIFIED",
-    "grafana_cloud": "BLOCKED_BY_CREDENTIALS",
-    "neo4j_aura": "BLOCKED_BY_CREDENTIALS_AND_EMPTY_SOURCE_GRAPH",
-    "opik": "BLOCKED_BY_CREDENTIALS",
-    "production": "PRODUCTION_APPROVAL_PENDING",
-    "qdrant_cloud": "BLOCKED_BY_CREDENTIALS"
-  },
-  "container": {
-    "candidate_tags": [
-      "ghcr.io/ceylanal/company-intelligence-graphrag:sha-ac42c2da87c9",
-      "ghcr.io/ceylanal/company-intelligence-graphrag:0.1.0",
-      "ghcr.io/ceylanal/company-intelligence-graphrag:staging"
-    ],
-    "digest": null,
-    "image": "ghcr.io/ceylanal/company-intelligence-graphrag",
-    "signature_verified": false
-  },
-  "credential_presence": {
-    "application_secrets": {
-      "API_KEY": false,
-      "LLM_API_KEY": false,
-      "NEO4J_PASSWORD": false,
-      "OPIK_API_KEY": false,
-      "OTEL_EXPORTER_OTLP_HEADERS": false,
-      "QDRANT_API_KEY": false
-    },
-    "github_secrets": {
-      "GCP_SERVICE_ACCOUNT": false,
-      "GCP_WORKLOAD_IDENTITY_PROVIDER": false
-    }
-  },
-  "expected_eval_suites": [
-    "vector_retrieval",
-    "graph_retrieval",
-    "multi_hop_reasoning",
-    "hybrid_retrieval",
-    "citation_correctness",
-    "citation_coverage",
-    "groundedness",
-    "answer_relevance",
-    "agent_task_success",
-    "failure_recovery"
-  ],
-  "expected_smoke_tests": [
-    "liveness",
-    "readiness",
-    "version",
-    "authentication",
-    "invalid_request",
-    "vector_retrieval",
-    "graph_retrieval",
-    "hybrid_research",
-    "citation_validation",
-    "rate_limit",
-    "budget_exceeded"
-  ],
-  "generated_at": "2026-07-29T01:42:44.125462+00:00",
+  "schema_version": "2.0.0",
+  "generated_at": "2026-07-29T23:48:38Z",
+  "repository": "ceylanal/company-intelligence-graphrag",
   "git": {
     "branch": "codex/configure-staging-runtime-identity",
-    "commit_sha": "ac42c2da87c956099048778c0e28e5f1689796b7",
-    "short_sha": "ac42c2da87c9",
+    "commit_sha": "d847683d00b383ee699eb1930359dde65b4de4e9",
     "worktree_clean": false
   },
-  "production": {
-    "cloud_run_service": "company-graphrag",
-    "environment": "production",
-    "grafana_environment": "production",
-    "neo4j_database": "neo4j",
-    "opik_project": "company-graphrag-production",
-    "qdrant_collection": "company_documents_production",
-    "revision": null,
-    "url": null
+  "final_decision": {
+    "staging": "STAGING_ACTIVATION_BLOCKED",
+    "production": "PRODUCTION_ACTIVATION_BLOCKED",
+    "production_deployed": false,
+    "production_traffic_enabled": false
   },
-  "repository": "ceylanal/company-intelligence-graphrag",
-  "rollback_target": null,
-  "schema_version": "1.0.0",
-  "staging": {
-    "cloud_run_service": "company-graphrag-staging",
-    "environment": "staging",
-    "grafana_environment": "staging",
-    "neo4j_database": "neo4j",
-    "opik_project": "company-graphrag-staging",
-    "qdrant_collection": "company_documents_staging",
-    "revision": null,
-    "url": null
+  "checkpoints": {
+    "credential_precheck": {
+      "status": "PASS",
+      "evidence": [
+        "GitHub Actions staging environment",
+        "Google Workload Identity Federation",
+        "Google Secret Manager",
+        "Qdrant Cloud",
+        "Neo4j Aura",
+        "Comet Opik",
+        "Grafana Cloud OTLP"
+      ]
+    },
+    "image_release_security": {
+      "status": "PASS",
+      "github_run": 30498173366,
+      "digest": "sha256:a0a8b9ae9b20a3c3e745961b2ee63bbde40dd6b626b970f8523924608ace54d3",
+      "signature_verified": true,
+      "trivy_critical": 0,
+      "trivy_high": 0,
+      "evidence": "artifacts/production_activation/github_run_30498173366/release-candidate-evidence"
+    },
+    "cloud_data_migration": {
+      "status": "PASS",
+      "qdrant": {
+        "collection": "company_documents_staging",
+        "points_count": 25859,
+        "vector_size": 384,
+        "distance": "Cosine",
+        "checksum": "7ec2d5f537c205e73febf71978962bf1276f24a8aaaa445bd268feaa0b43fb01",
+        "payload_indexes": [
+          "ticker",
+          "year",
+          "company",
+          "report_type",
+          "language"
+        ],
+        "evidence": [
+          "artifacts/production_activation/qdrant/cloud-inventory.json",
+          "artifacts/production_activation/qdrant/payload-index-evidence.json"
+        ]
+      },
+      "neo4j": {
+        "database": "64a945c7",
+        "nodes": 4,
+        "relationships": 3,
+        "duplicate_node_ids": 0,
+        "duplicate_relationship_ids": 0,
+        "nodes_missing_provenance": 0,
+        "relationships_missing_provenance": 0,
+        "orphan_nodes": 0,
+        "multi_hop_queries_passed": 3,
+        "evidence": [
+          "artifacts/production_activation/neo4j/cloud-migration-result.json",
+          "artifacts/production_activation/neo4j/cloud-inventory.json"
+        ]
+      }
+    },
+    "cloud_run_deployment": {
+      "status": "PASS",
+      "github_run": 30499923938,
+      "service": "company-graphrag-staging",
+      "revision": "company-graphrag-staging-sha-a0a8b9ae-run-99923938",
+      "url": "https://company-graphrag-staging-c6oeawtcxq-ew.a.run.app",
+      "traffic_percent": 100,
+      "private": true,
+      "evidence": "artifacts/production_activation/staging/runtime-evidence.json"
+    },
+    "staging_smoke": {
+      "status": "PASS",
+      "passed": 6,
+      "failed": 0,
+      "evidence": "artifacts/production_activation/github_run_30499923938/staging-smoke-results/smoke.json"
+    },
+    "live_observability": {
+      "status": "PARTIAL",
+      "opik_trace_delivery": "PASS",
+      "grafana_otlp_transport": "PASS",
+      "telemetry_export_errors": 0,
+      "unverified": [
+        "Grafana trace search result",
+        "token usage field",
+        "cost metric field",
+        "retry/fallback metric field"
+      ],
+      "evidence": "artifacts/production_activation/observability/live-evidence.json"
+    },
+    "staging_eval_baseline": {
+      "status": "QUALITY_GATE_FAILED",
+      "execution_status": "PASS",
+      "sample_count": 34,
+      "request_success_rate": 1.0,
+      "correctness_rate": 0.3235,
+      "faithfulness_proxy_rate": 1.0,
+      "citation_correctness_proxy_rate": 0.3636,
+      "retrieval_recall_proxy": 0.6176,
+      "multi_hop_success_rate": 0.0,
+      "hallucination_rate": 0.5588,
+      "p50_latency_ms": 5060.59,
+      "p95_latency_ms": 5557.79,
+      "evidence": "artifacts/production_activation/github_run_30499923938/staging-eval-baseline/staging-summary.json"
+    },
+    "locust_load_baseline": {
+      "status": "PASS",
+      "users": [
+        1,
+        5,
+        10
+      ],
+      "total_requests": 449,
+      "total_failures": 0,
+      "provider_fallback_rate": null,
+      "provider_fallback_note": "Not exercised by the bounded health-only load profile.",
+      "evidence": "artifacts/production_activation/github_run_30499923938/staging-load-baseline/summary.json"
+    },
+    "backup_restore": {
+      "status": "BLOCKED_EXTERNAL_DEPENDENCY",
+      "qdrant": {
+        "status": "PASS",
+        "github_run": 30500595911,
+        "source_collection": "company_documents_staging",
+        "restore_collection": "company_documents_staging_restore_rehearsal_v2",
+        "duration_seconds": 37.78,
+        "checks": {
+          "points_count": true,
+          "scanned_points_count": true,
+          "vectors": true,
+          "payload_schema": true,
+          "id_payload_checksum": true
+        }
+      },
+      "neo4j": {
+        "status": "BLOCKED_EXTERNAL_DEPENDENCY",
+        "reason": "AuraDB Free does not provide snapshot backup/restore or export."
+      }
+    },
+    "rollback_rehearsal": {
+      "status": "PASS",
+      "bad_revision_http_status": 503,
+      "recovered_readiness_http_status": 200,
+      "recovered_research_http_status": 200,
+      "recovery_duration_seconds": 28,
+      "evidence": "artifacts/production_activation/rollback/rollback-rehearsal.json"
+    }
   },
-  "versioning": {
-    "application_version": "0.1.0",
-    "config_hash": "0c39f6471caa369668c46f391ef3bd472c6345fb0042bc12943f2d35cd9c4880",
-    "manifest_schema_version": "1.0.0",
-    "prompt_bundle_version": "1.0.0",
-    "workflow_version": "1.0.0"
-  }
+  "external_blockers": [
+    {
+      "id": "NEO4J_AURA_BACKUP_RESTORE",
+      "status": "BLOCKED_EXTERNAL_DEPENDENCY",
+      "required_action": "Upgrade/use an Aura tier with backup and restore support, then run the isolated Neo4j restore rehearsal."
+    },
+    {
+      "id": "STAGING_QUALITY_BASELINE",
+      "status": "QUALITY_GATE_FAILED",
+      "required_action": "Correct retrieval/answer grounding and rerun the frozen 34-sample baseline."
+    },
+    {
+      "id": "GRAFANA_TRACE_QUERY",
+      "status": "UNVERIFIED",
+      "required_action": "Query one recorded trace ID in Grafana Tempo and verify token, cost, retry and fallback fields."
+    }
+  ]
 }

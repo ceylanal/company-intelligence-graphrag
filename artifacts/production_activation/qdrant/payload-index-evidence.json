@@ -1,0 +1,34 @@
+{
+  "schema_version": "1.0.0",
+  "generated_at": "2026-07-29T23:43:42Z",
+  "collection": "company_documents_staging",
+  "status": "PASS",
+  "points_count": 25859,
+  "collection_status": "green",
+  "indexes": {
+    "ticker": "keyword",
+    "year": "integer",
+    "company": "keyword",
+    "report_type": "keyword",
+    "language": "keyword"
+  },
+  "indexed_points_per_field": 25859,
+  "operations": {
+    "ticker": 407,
+    "year": 409,
+    "company": 411,
+    "report_type": 413,
+    "language": 415
+  },
+  "post_fix_query_evidence": {
+    "revision": "company-graphrag-staging-sha-a0a8b9ae-run-99923938",
+    "observed_http_status": 200,
+    "observed_at": [
+      "2026-07-29T23:35:08.074239Z",
+      "2026-07-29T23:35:23.753135Z",
+      "2026-07-29T23:35:28.376911Z"
+    ]
+  },
+  "diagnostic_run": 30499589188,
+  "verified_run": 30499923938
+}

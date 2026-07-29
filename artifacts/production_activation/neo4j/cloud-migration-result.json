@@ -1,0 +1,1038 @@
+{
+  "audit": {
+    "checkpoint_path": "artifacts/production_activation/neo4j/staging-migration-checkpoint.json",
+    "duplicate_merge_attempts": 0,
+    "errors": [],
+    "execution_time_ms": 4299.22,
+    "ingested_nodes": 4,
+    "ingested_relations": 3,
+    "node_counts_by_label": {
+      "Company": 1,
+      "Date": 1,
+      "FinancialMetric": 1,
+      "Person": 1
+    },
+    "orphan_node_count": 0,
+    "relation_counts_by_type": {
+      "FOR_DATE": 1,
+      "HOLDS_ROLE_AT": 1,
+      "REPORTED_METRIC": 1
+    },
+    "status": "PASS",
+    "total_input_entities": 4,
+    "total_input_relations": 3
+  },
+  "checkpoint_path": "artifacts/production_activation/neo4j/staging-migration-checkpoint.json",
+  "database": "64a945c7",
+  "input_dir": "data/graph/sample_day19",
+  "inventory": {
+    "constraints": [
+      {
+        "classification": "undesignated",
+        "createStatement": "CREATE CONSTRAINT `c_chunk_chunk_id` FOR (n:`Chunk`) REQUIRE (n.`chunk_id`) IS UNIQUE",
+        "enforcedLabel": null,
+        "entityType": "NODE",
+        "id": 25,
+        "labelsOrTypes": [
+          "Chunk"
+        ],
+        "name": "c_chunk_chunk_id",
+        "options": {
+          "indexConfig": {}
+        },
+        "ownedIndex": "c_chunk_chunk_id",
+        "properties": [
+          "chunk_id"
+        ],
+        "propertyType": null,
+        "type": "NODE_PROPERTY_UNIQUENESS"
+      },
+      {
+        "classification": "undesignated",
+        "createStatement": "CREATE CONSTRAINT `c_chunk_id` FOR (n:`Chunk`) REQUIRE (n.`id`) IS UNIQUE",
+        "enforcedLabel": null,
+        "entityType": "NODE",
+        "id": 7,
+        "labelsOrTypes": [
+          "Chunk"
+        ],
+        "name": "c_chunk_id",
+        "options": {
+          "indexConfig": {}
+        },
+        "ownedIndex": "c_chunk_id",
+        "properties": [
+          "id"
+        ],
+        "propertyType": null,
+        "type": "NODE_PROPERTY_UNIQUENESS"
+      },
+      {
+        "classification": "undesignated",
+        "createStatement": "CREATE CONSTRAINT `c_company_id` FOR (n:`Company`) REQUIRE (n.`id`) IS UNIQUE",
+        "enforcedLabel": null,
+        "entityType": "NODE",
+        "id": 3,
+        "labelsOrTypes": [
+          "Company"
+        ],
+        "name": "c_company_id",
+        "options": {
+          "indexConfig": {}
+        },
+        "ownedIndex": "c_company_id",
+        "properties": [
+          "id"
+        ],
+        "propertyType": null,
+        "type": "NODE_PROPERTY_UNIQUENESS"
+      },
+      {
+        "classification": "undesignated",
+        "createStatement": "CREATE CONSTRAINT `c_company_ticker` FOR (n:`Company`) REQUIRE (n.`ticker`) IS UNIQUE",
+        "enforcedLabel": null,
+        "entityType": "NODE",
+        "id": 21,
+        "labelsOrTypes": [
+          "Company"
+        ],
+        "name": "c_company_ticker",
+        "options": {
+          "indexConfig": {}
+        },
+        "ownedIndex": "c_company_ticker",
+        "properties": [
+          "ticker"
+        ],
+        "propertyType": null,
+        "type": "NODE_PROPERTY_UNIQUENESS"
+      },
+      {
+        "classification": "undesignated",
+        "createStatement": "CREATE CONSTRAINT `c_date_id` FOR (n:`Date`) REQUIRE (n.`id`) IS UNIQUE",
+        "enforcedLabel": null,
+        "entityType": "NODE",
+        "id": 19,
+        "labelsOrTypes": [
+          "Date"
+        ],
+        "name": "c_date_id",
+        "options": {
+          "indexConfig": {}
+        },
+        "ownedIndex": "c_date_id",
+        "properties": [
+          "id"
+        ],
+        "propertyType": null,
+        "type": "NODE_PROPERTY_UNIQUENESS"
+      },
+      {
+        "classification": "undesignated",
+        "createStatement": "CREATE CONSTRAINT `c_date_value` FOR (n:`Date`) REQUIRE (n.`value`) IS UNIQUE",
+        "enforcedLabel": null,
+        "entityType": "NODE",
+        "id": 27,
+        "labelsOrTypes": [
+          "Date"
+        ],
+        "name": "c_date_value",
+        "options": {
+          "indexConfig": {}
+        },
+        "ownedIndex": "c_date_value",
+        "properties": [
+          "value"
+        ],
+        "propertyType": null,
+        "type": "NODE_PROPERTY_UNIQUENESS"
+      },
+      {
+        "classification": "undesignated",
+        "createStatement": "CREATE CONSTRAINT `c_event_id` FOR (n:`Event`) REQUIRE (n.`id`) IS UNIQUE",
+        "enforcedLabel": null,
+        "entityType": "NODE",
+        "id": 17,
+        "labelsOrTypes": [
+          "Event"
+        ],
+        "name": "c_event_id",
+        "options": {
+          "indexConfig": {}
+        },
+        "ownedIndex": "c_event_id",
+        "properties": [
+          "id"
+        ],
+        "propertyType": null,
+        "type": "NODE_PROPERTY_UNIQUENESS"
+      },
+      {
+        "classification": "undesignated",
+        "createStatement": "CREATE CONSTRAINT `c_financial_metric_id` FOR (n:`FinancialMetric`) REQUIRE (n.`id`) IS UNIQUE",
+        "enforcedLabel": null,
+        "entityType": "NODE",
+        "id": 15,
+        "labelsOrTypes": [
+          "FinancialMetric"
+        ],
+        "name": "c_financial_metric_id",
+        "options": {
+          "indexConfig": {}
+        },
+        "ownedIndex": "c_financial_metric_id",
+        "properties": [
+          "id"
+        ],
+        "propertyType": null,
+        "type": "NODE_PROPERTY_UNIQUENESS"
+      },
+      {
+        "classification": "undesignated",
+        "createStatement": "CREATE CONSTRAINT `c_person_id` FOR (n:`Person`) REQUIRE (n.`id`) IS UNIQUE",
+        "enforcedLabel": null,
+        "entityType": "NODE",
+        "id": 9,
+        "labelsOrTypes": [
+          "Person"
+        ],
+        "name": "c_person_id",
+        "options": {
+          "indexConfig": {}
+        },
+        "ownedIndex": "c_person_id",
+        "properties": [
+          "id"
+        ],
+        "propertyType": null,
+        "type": "NODE_PROPERTY_UNIQUENESS"
+      },
+      {
+        "classification": "undesignated",
+        "createStatement": "CREATE CONSTRAINT `c_product_id` FOR (n:`Product`) REQUIRE (n.`id`) IS UNIQUE",
+        "enforcedLabel": null,
+        "entityType": "NODE",
+        "id": 11,
+        "labelsOrTypes": [
+          "Product"
+        ],
+        "name": "c_product_id",
+        "options": {
+          "indexConfig": {}
+        },
+        "ownedIndex": "c_product_id",
+        "properties": [
+          "id"
+        ],
+        "propertyType": null,
+        "type": "NODE_PROPERTY_UNIQUENESS"
+      },
+      {
+        "classification": "undesignated",
+        "createStatement": "CREATE CONSTRAINT `c_report_document_id` FOR (n:`Report`) REQUIRE (n.`document_id`) IS UNIQUE",
+        "enforcedLabel": null,
+        "entityType": "NODE",
+        "id": 23,
+        "labelsOrTypes": [
+          "Report"
+        ],
+        "name": "c_report_document_id",
+        "options": {
+          "indexConfig": {}
+        },
+        "ownedIndex": "c_report_document_id",
+        "properties": [
+          "document_id"
+        ],
+        "propertyType": null,
+        "type": "NODE_PROPERTY_UNIQUENESS"
+      },
+      {
+        "classification": "undesignated",
+        "createStatement": "CREATE CONSTRAINT `c_report_id` FOR (n:`Report`) REQUIRE (n.`id`) IS UNIQUE",
+        "enforcedLabel": null,
+        "entityType": "NODE",
+        "id": 5,
+        "labelsOrTypes": [
+          "Report"
+        ],
+        "name": "c_report_id",
+        "options": {
+          "indexConfig": {}
+        },
+        "ownedIndex": "c_report_id",
+        "properties": [
+          "id"
+        ],
+        "propertyType": null,
+        "type": "NODE_PROPERTY_UNIQUENESS"
+      },
+      {
+        "classification": "undesignated",
+        "createStatement": "CREATE CONSTRAINT `c_sector_id` FOR (n:`Sector`) REQUIRE (n.`id`) IS UNIQUE",
+        "enforcedLabel": null,
+        "entityType": "NODE",
+        "id": 13,
+        "labelsOrTypes": [
+          "Sector"
+        ],
+        "name": "c_sector_id",
+        "options": {
+          "indexConfig": {}
+        },
+        "ownedIndex": "c_sector_id",
+        "properties": [
+          "id"
+        ],
+        "propertyType": null,
+        "type": "NODE_PROPERTY_UNIQUENESS"
+      }
+    ],
+    "database": "neo4j",
+    "generated_at": "2026-07-29T02:38:47.228699+00:00",
+    "indexes": [
+      {
+        "createStatement": "CREATE CONSTRAINT `c_chunk_chunk_id` FOR (n:`Chunk`) REQUIRE (n.`chunk_id`) IS UNIQUE",
+        "entityType": "NODE",
+        "failureMessage": "",
+        "id": 24,
+        "indexProvider": "range-1.0",
+        "labelsOrTypes": [
+          "Chunk"
+        ],
+        "lastRead": null,
+        "name": "c_chunk_chunk_id",
+        "options": {
+          "indexConfig": {}
+        },
+        "owningConstraint": "c_chunk_chunk_id",
+        "populationPercent": 100.0,
+        "properties": [
+          "chunk_id"
+        ],
+        "readCount": 0,
+        "state": "ONLINE",
+        "trackedSince": "2026-07-29T02:15:31.565000000+00:00",
+        "type": "RANGE"
+      },
+      {
+        "createStatement": "CREATE CONSTRAINT `c_chunk_id` FOR (n:`Chunk`) REQUIRE (n.`id`) IS UNIQUE",
+        "entityType": "NODE",
+        "failureMessage": "",
+        "id": 6,
+        "indexProvider": "range-1.0",
+        "labelsOrTypes": [
+          "Chunk"
+        ],
+        "lastRead": null,
+        "name": "c_chunk_id",
+        "options": {
+          "indexConfig": {}
+        },
+        "owningConstraint": "c_chunk_id",
+        "populationPercent": 100.0,
+        "properties": [
+          "id"
+        ],
+        "readCount": 0,
+        "state": "ONLINE",
+        "trackedSince": "2026-07-29T02:15:30.235000000+00:00",
+        "type": "RANGE"
+      },
+      {
+        "createStatement": "CREATE CONSTRAINT `c_company_id` FOR (n:`Company`) REQUIRE (n.`id`) IS UNIQUE",
+        "entityType": "NODE",
+        "failureMessage": "",
+        "id": 2,
+        "indexProvider": "range-1.0",
+        "labelsOrTypes": [
+          "Company"
+        ],
+        "lastRead": "2026-07-29T02:38:43.450000000+00:00",
+        "name": "c_company_id",
+        "options": {
+          "indexConfig": {}
+        },
+        "owningConstraint": "c_company_id",
+        "populationPercent": 100.0,
+        "properties": [
+          "id"
+        ],
+        "readCount": 3,
+        "state": "ONLINE",
+        "trackedSince": "2026-07-29T02:15:29.943000000+00:00",
+        "type": "RANGE"
+      },
+      {
+        "createStatement": "CREATE CONSTRAINT `c_company_ticker` FOR (n:`Company`) REQUIRE (n.`ticker`) IS UNIQUE",
+        "entityType": "NODE",
+        "failureMessage": "",
+        "id": 20,
+        "indexProvider": "range-1.0",
+        "labelsOrTypes": [
+          "Company"
+        ],
+        "lastRead": "2026-07-29T02:38:43.465000000+00:00",
+        "name": "c_company_ticker",
+        "options": {
+          "indexConfig": {}
+        },
+        "owningConstraint": "c_company_ticker",
+        "populationPercent": 100.0,
+        "properties": [
+          "ticker"
+        ],
+        "readCount": 1,
+        "state": "ONLINE",
+        "trackedSince": "2026-07-29T02:15:31.271000000+00:00",
+        "type": "RANGE"
+      },
+      {
+        "createStatement": "CREATE CONSTRAINT `c_date_id` FOR (n:`Date`) REQUIRE (n.`id`) IS UNIQUE",
+        "entityType": "NODE",
+        "failureMessage": "",
+        "id": 18,
+        "indexProvider": "range-1.0",
+        "labelsOrTypes": [
+          "Date"
+        ],
+        "lastRead": "2026-07-29T02:38:43.784000000+00:00",
+        "name": "c_date_id",
+        "options": {
+          "indexConfig": {}
+        },
+        "owningConstraint": "c_date_id",
+        "populationPercent": 100.0,
+        "properties": [
+          "id"
+        ],
+        "readCount": 3,
+        "state": "ONLINE",
+        "trackedSince": "2026-07-29T02:15:31.123000000+00:00",
+        "type": "RANGE"
+      },
+      {
+        "createStatement": "CREATE CONSTRAINT `c_date_value` FOR (n:`Date`) REQUIRE (n.`value`) IS UNIQUE",
+        "entityType": "NODE",
+        "failureMessage": "",
+        "id": 26,
+        "indexProvider": "range-1.0",
+        "labelsOrTypes": [
+          "Date"
+        ],
+        "lastRead": "2026-07-29T02:38:43.790000000+00:00",
+        "name": "c_date_value",
+        "options": {
+          "indexConfig": {}
+        },
+        "owningConstraint": "c_date_value",
+        "populationPercent": 100.0,
+        "properties": [
+          "value"
+        ],
+        "readCount": 1,
+        "state": "ONLINE",
+        "trackedSince": "2026-07-29T02:15:31.714000000+00:00",
+        "type": "RANGE"
+      },
+      {
+        "createStatement": "CREATE CONSTRAINT `c_event_id` FOR (n:`Event`) REQUIRE (n.`id`) IS UNIQUE",
+        "entityType": "NODE",
+        "failureMessage": "",
+        "id": 16,
+        "indexProvider": "range-1.0",
+        "labelsOrTypes": [
+          "Event"
+        ],
+        "lastRead": null,
+        "name": "c_event_id",
+        "options": {
+          "indexConfig": {}
+        },
+        "owningConstraint": "c_event_id",
+        "populationPercent": 100.0,
+        "properties": [
+          "id"
+        ],
+        "readCount": 0,
+        "state": "ONLINE",
+        "trackedSince": "2026-07-29T02:15:30.975000000+00:00",
+        "type": "RANGE"
+      },
+      {
+        "createStatement": "CREATE CONSTRAINT `c_financial_metric_id` FOR (n:`FinancialMetric`) REQUIRE (n.`id`) IS UNIQUE",
+        "entityType": "NODE",
+        "failureMessage": "",
+        "id": 14,
+        "indexProvider": "range-1.0",
+        "labelsOrTypes": [
+          "FinancialMetric"
+        ],
+        "lastRead": "2026-07-29T02:38:43.631000000+00:00",
+        "name": "c_financial_metric_id",
+        "options": {
+          "indexConfig": {}
+        },
+        "owningConstraint": "c_financial_metric_id",
+        "populationPercent": 100.0,
+        "properties": [
+          "id"
+        ],
+        "readCount": 3,
+        "state": "ONLINE",
+        "trackedSince": "2026-07-29T02:15:30.822000000+00:00",
+        "type": "RANGE"
+      },
+      {
+        "createStatement": "CREATE CONSTRAINT `c_person_id` FOR (n:`Person`) REQUIRE (n.`id`) IS UNIQUE",
+        "entityType": "NODE",
+        "failureMessage": "",
+        "id": 8,
+        "indexProvider": "range-1.0",
+        "labelsOrTypes": [
+          "Person"
+        ],
+        "lastRead": "2026-07-29T02:38:43.928000000+00:00",
+        "name": "c_person_id",
+        "options": {
+          "indexConfig": {}
+        },
+        "owningConstraint": "c_person_id",
+        "populationPercent": 100.0,
+        "properties": [
+          "id"
+        ],
+        "readCount": 3,
+        "state": "ONLINE",
+        "trackedSince": "2026-07-29T02:15:30.381000000+00:00",
+        "type": "RANGE"
+      },
+      {
+        "createStatement": "CREATE CONSTRAINT `c_product_id` FOR (n:`Product`) REQUIRE (n.`id`) IS UNIQUE",
+        "entityType": "NODE",
+        "failureMessage": "",
+        "id": 10,
+        "indexProvider": "range-1.0",
+        "labelsOrTypes": [
+          "Product"
+        ],
+        "lastRead": null,
+        "name": "c_product_id",
+        "options": {
+          "indexConfig": {}
+        },
+        "owningConstraint": "c_product_id",
+        "populationPercent": 100.0,
+        "properties": [
+          "id"
+        ],
+        "readCount": 0,
+        "state": "ONLINE",
+        "trackedSince": "2026-07-29T02:15:30.528000000+00:00",
+        "type": "RANGE"
+      },
+      {
+        "createStatement": "CREATE CONSTRAINT `c_report_document_id` FOR (n:`Report`) REQUIRE (n.`document_id`) IS UNIQUE",
+        "entityType": "NODE",
+        "failureMessage": "",
+        "id": 22,
+        "indexProvider": "range-1.0",
+        "labelsOrTypes": [
+          "Report"
+        ],
+        "lastRead": null,
+        "name": "c_report_document_id",
+        "options": {
+          "indexConfig": {}
+        },
+        "owningConstraint": "c_report_document_id",
+        "populationPercent": 100.0,
+        "properties": [
+          "document_id"
+        ],
+        "readCount": 0,
+        "state": "ONLINE",
+        "trackedSince": "2026-07-29T02:15:31.417000000+00:00",
+        "type": "RANGE"
+      },
+      {
+        "createStatement": "CREATE CONSTRAINT `c_report_id` FOR (n:`Report`) REQUIRE (n.`id`) IS UNIQUE",
+        "entityType": "NODE",
+        "failureMessage": "",
+        "id": 4,
+        "indexProvider": "range-1.0",
+        "labelsOrTypes": [
+          "Report"
+        ],
+        "lastRead": null,
+        "name": "c_report_id",
+        "options": {
+          "indexConfig": {}
+        },
+        "owningConstraint": "c_report_id",
+        "populationPercent": 100.0,
+        "properties": [
+          "id"
+        ],
+        "readCount": 0,
+        "state": "ONLINE",
+        "trackedSince": "2026-07-29T02:15:30.089000000+00:00",
+        "type": "RANGE"
+      },
+      {
+        "createStatement": "CREATE CONSTRAINT `c_sector_id` FOR (n:`Sector`) REQUIRE (n.`id`) IS UNIQUE",
+        "entityType": "NODE",
+        "failureMessage": "",
+        "id": 12,
+        "indexProvider": "range-1.0",
+        "labelsOrTypes": [
+          "Sector"
+        ],
+        "lastRead": null,
+        "name": "c_sector_id",
+        "options": {
+          "indexConfig": {}
+        },
+        "owningConstraint": "c_sector_id",
+        "populationPercent": 100.0,
+        "properties": [
+          "id"
+        ],
+        "readCount": 0,
+        "state": "ONLINE",
+        "trackedSince": "2026-07-29T02:15:30.675000000+00:00",
+        "type": "RANGE"
+      },
+      {
+        "createStatement": "CREATE RANGE INDEX `idx_chunk_citation` FOR (n:`Chunk`) ON (n.`report_id`, n.`page_number`)",
+        "entityType": "NODE",
+        "failureMessage": "",
+        "id": 29,
+        "indexProvider": "range-1.0",
+        "labelsOrTypes": [
+          "Chunk"
+        ],
+        "lastRead": null,
+        "name": "idx_chunk_citation",
+        "options": {
+          "indexConfig": {}
+        },
+        "owningConstraint": null,
+        "populationPercent": 100.0,
+        "properties": [
+          "report_id",
+          "page_number"
+        ],
+        "readCount": 0,
+        "state": "ONLINE",
+        "trackedSince": "2026-07-29T02:15:32.018000000+00:00",
+        "type": "RANGE"
+      },
+      {
+        "createStatement": "CREATE FULLTEXT INDEX `idx_entity_fulltext` FOR (n:`Company`|`Person`|`Product`|`Sector`|`Event`) ON EACH [n.`name`, n.`title`, n.`aliases`, n.`description`] OPTIONS {indexConfig: {`fulltext.analyzer`: 'standard-no-stop-words',`fulltext.eventually_consistent`: false}}",
+        "entityType": "NODE",
+        "failureMessage": "",
+        "id": 36,
+        "indexProvider": "fulltext-2.0",
+        "labelsOrTypes": [
+          "Company",
+          "Person",
+          "Product",
+          "Sector",
+          "Event"
+        ],
+        "lastRead": null,
+        "name": "idx_entity_fulltext",
+        "options": {
+          "indexConfig": {
+            "fulltext.analyzer": "standard-no-stop-words",
+            "fulltext.eventually_consistent": false
+          }
+        },
+        "owningConstraint": null,
+        "populationPercent": 100.0,
+        "properties": [
+          "name",
+          "title",
+          "aliases",
+          "description"
+        ],
+        "readCount": 0,
+        "state": "ONLINE",
+        "trackedSince": "2026-07-29T02:15:33.048000000+00:00",
+        "type": "FULLTEXT"
+      },
+      {
+        "createStatement": "CREATE RANGE INDEX `idx_event_lookup` FOR (n:`Event`) ON (n.`company_id`, n.`date_id`, n.`event_type`)",
+        "entityType": "NODE",
+        "failureMessage": "",
+        "id": 35,
+        "indexProvider": "range-1.0",
+        "labelsOrTypes": [
+          "Event"
+        ],
+        "lastRead": null,
+        "name": "idx_event_lookup",
+        "options": {
+          "indexConfig": {}
+        },
+        "owningConstraint": null,
+        "populationPercent": 100.0,
+        "properties": [
+          "company_id",
+          "date_id",
+          "event_type"
+        ],
+        "readCount": 0,
+        "state": "ONLINE",
+        "trackedSince": "2026-07-29T02:15:32.883000000+00:00",
+        "type": "RANGE"
+      },
+      {
+        "createStatement": "CREATE RANGE INDEX `idx_evidence_report` FOR ()-[r:`EVIDENCED_BY`]-() ON (r.`source_report_id`)",
+        "entityType": "RELATIONSHIP",
+        "failureMessage": "",
+        "id": 37,
+        "indexProvider": "range-1.0",
+        "labelsOrTypes": [
+          "EVIDENCED_BY"
+        ],
+        "lastRead": null,
+        "name": "idx_evidence_report",
+        "options": {
+          "indexConfig": {}
+        },
+        "owningConstraint": null,
+        "populationPercent": 100.0,
+        "properties": [
+          "source_report_id"
+        ],
+        "readCount": 0,
+        "state": "ONLINE",
+        "trackedSince": "2026-07-29T02:15:33.196000000+00:00",
+        "type": "RANGE"
+      },
+      {
+        "createStatement": "CREATE RANGE INDEX `idx_metric_lookup` FOR (n:`FinancialMetric`) ON (n.`company_id`, n.`metric_key`, n.`date_id`)",
+        "entityType": "NODE",
+        "failureMessage": "",
+        "id": 33,
+        "indexProvider": "range-1.0",
+        "labelsOrTypes": [
+          "FinancialMetric"
+        ],
+        "lastRead": null,
+        "name": "idx_metric_lookup",
+        "options": {
+          "indexConfig": {}
+        },
+        "owningConstraint": null,
+        "populationPercent": 100.0,
+        "properties": [
+          "company_id",
+          "metric_key",
+          "date_id"
+        ],
+        "readCount": 0,
+        "state": "ONLINE",
+        "trackedSince": "2026-07-29T02:15:32.595000000+00:00",
+        "type": "RANGE"
+      },
+      {
+        "createStatement": "CREATE RANGE INDEX `idx_metric_source` FOR (n:`FinancialMetric`) ON (n.`source_chunk_id`)",
+        "entityType": "NODE",
+        "failureMessage": "",
+        "id": 34,
+        "indexProvider": "range-1.0",
+        "labelsOrTypes": [
+          "FinancialMetric"
+        ],
+        "lastRead": null,
+        "name": "idx_metric_source",
+        "options": {
+          "indexConfig": {}
+        },
+        "owningConstraint": null,
+        "populationPercent": 100.0,
+        "properties": [
+          "source_chunk_id"
+        ],
+        "readCount": 0,
+        "state": "ONLINE",
+        "trackedSince": "2026-07-29T02:15:32.738000000+00:00",
+        "type": "RANGE"
+      },
+      {
+        "createStatement": "CREATE RANGE INDEX `idx_person_name` FOR (n:`Person`) ON (n.`normalized_name`)",
+        "entityType": "NODE",
+        "failureMessage": "",
+        "id": 30,
+        "indexProvider": "range-1.0",
+        "labelsOrTypes": [
+          "Person"
+        ],
+        "lastRead": null,
+        "name": "idx_person_name",
+        "options": {
+          "indexConfig": {}
+        },
+        "owningConstraint": null,
+        "populationPercent": 100.0,
+        "properties": [
+          "normalized_name"
+        ],
+        "readCount": 0,
+        "state": "ONLINE",
+        "trackedSince": "2026-07-29T02:15:32.161000000+00:00",
+        "type": "RANGE"
+      },
+      {
+        "createStatement": "CREATE RANGE INDEX `idx_product_name` FOR (n:`Product`) ON (n.`normalized_name`)",
+        "entityType": "NODE",
+        "failureMessage": "",
+        "id": 31,
+        "indexProvider": "range-1.0",
+        "labelsOrTypes": [
+          "Product"
+        ],
+        "lastRead": null,
+        "name": "idx_product_name",
+        "options": {
+          "indexConfig": {}
+        },
+        "owningConstraint": null,
+        "populationPercent": 100.0,
+        "properties": [
+          "normalized_name"
+        ],
+        "readCount": 0,
+        "state": "ONLINE",
+        "trackedSince": "2026-07-29T02:15:32.301000000+00:00",
+        "type": "RANGE"
+      },
+      {
+        "createStatement": "CREATE RANGE INDEX `idx_report_lookup` FOR (n:`Report`) ON (n.`ticker`, n.`year`, n.`report_type`, n.`language`)",
+        "entityType": "NODE",
+        "failureMessage": "",
+        "id": 28,
+        "indexProvider": "range-1.0",
+        "labelsOrTypes": [
+          "Report"
+        ],
+        "lastRead": null,
+        "name": "idx_report_lookup",
+        "options": {
+          "indexConfig": {}
+        },
+        "owningConstraint": null,
+        "populationPercent": 100.0,
+        "properties": [
+          "ticker",
+          "year",
+          "report_type",
+          "language"
+        ],
+        "readCount": 0,
+        "state": "ONLINE",
+        "trackedSince": "2026-07-29T02:15:31.870000000+00:00",
+        "type": "RANGE"
+      },
+      {
+        "createStatement": "CREATE RANGE INDEX `idx_role_name` FOR ()-[r:`HOLDS_ROLE_AT`]-() ON (r.`role`)",
+        "entityType": "RELATIONSHIP",
+        "failureMessage": "",
+        "id": 38,
+        "indexProvider": "range-1.0",
+        "labelsOrTypes": [
+          "HOLDS_ROLE_AT"
+        ],
+        "lastRead": null,
+        "name": "idx_role_name",
+        "options": {
+          "indexConfig": {}
+        },
+        "owningConstraint": null,
+        "populationPercent": 100.0,
+        "properties": [
+          "role"
+        ],
+        "readCount": 0,
+        "state": "ONLINE",
+        "trackedSince": "2026-07-29T02:15:33.342000000+00:00",
+        "type": "RANGE"
+      },
+      {
+        "createStatement": "CREATE RANGE INDEX `idx_sector_name` FOR (n:`Sector`) ON (n.`normalized_name`)",
+        "entityType": "NODE",
+        "failureMessage": "",
+        "id": 32,
+        "indexProvider": "range-1.0",
+        "labelsOrTypes": [
+          "Sector"
+        ],
+        "lastRead": null,
+        "name": "idx_sector_name",
+        "options": {
+          "indexConfig": {}
+        },
+        "owningConstraint": null,
+        "populationPercent": 100.0,
+        "properties": [
+          "normalized_name"
+        ],
+        "readCount": 0,
+        "state": "ONLINE",
+        "trackedSince": "2026-07-29T02:15:32.442000000+00:00",
+        "type": "RANGE"
+      },
+      {
+        "createStatement": "CREATE LOOKUP INDEX `index_1b9dcc97` FOR ()-[r]-() ON EACH type(r)",
+        "entityType": "RELATIONSHIP",
+        "failureMessage": "",
+        "id": 1,
+        "indexProvider": "token-lookup-1.0",
+        "labelsOrTypes": null,
+        "lastRead": null,
+        "name": "index_1b9dcc97",
+        "options": {
+          "indexConfig": {}
+        },
+        "owningConstraint": null,
+        "populationPercent": 100.0,
+        "properties": null,
+        "readCount": 0,
+        "state": "ONLINE",
+        "trackedSince": "2026-07-29T00:33:34.644000000+00:00",
+        "type": "LOOKUP"
+      },
+      {
+        "createStatement": "CREATE LOOKUP INDEX `index_460996c0` FOR (n) ON EACH labels(n)",
+        "entityType": "NODE",
+        "failureMessage": "",
+        "id": 0,
+        "indexProvider": "token-lookup-1.0",
+        "labelsOrTypes": null,
+        "lastRead": null,
+        "name": "index_460996c0",
+        "options": {
+          "indexConfig": {}
+        },
+        "owningConstraint": null,
+        "populationPercent": 100.0,
+        "properties": null,
+        "readCount": 0,
+        "state": "ONLINE",
+        "trackedSince": "2026-07-29T00:33:34.643000000+00:00",
+        "type": "LOOKUP"
+      }
+    ],
+    "labels": {
+      "Company": 1,
+      "Date": 1,
+      "FinancialMetric": 1,
+      "Person": 1
+    },
+    "nodes_with_provenance": 0,
+    "orphan_nodes": 0,
+    "relationship_types": {
+      "FOR_DATE": 1,
+      "HOLDS_ROLE_AT": 1,
+      "REPORTED_METRIC": 1
+    },
+    "sample_nodes": [
+      {
+        "element_id": "4:9bd725c2-4096-495e-a3dc-d27fa80b3f94:0",
+        "labels": [
+          "Company"
+        ],
+        "property_keys": [
+          "id",
+          "ticker",
+          "page_number",
+          "source_chunk_id",
+          "name",
+          "source_report_id",
+          "evidence_text",
+          "source_page",
+          "canonical_name",
+          "confidence",
+          "source_file",
+          "created_at"
+        ]
+      },
+      {
+        "element_id": "4:9bd725c2-4096-495e-a3dc-d27fa80b3f94:1",
+        "labels": [
+          "FinancialMetric"
+        ],
+        "property_keys": [
+          "id",
+          "value",
+          "page_number",
+          "company_id",
+          "metric_key",
+          "date_id",
+          "source_chunk_id",
+          "name",
+          "source_report_id",
+          "evidence_text",
+          "source_page",
+          "canonical_name",
+          "confidence",
+          "source_file",
+          "created_at",
+          "scale",
+          "unit",
+          "scope",
+          "reported_value"
+        ]
+      },
+      {
+        "element_id": "4:9bd725c2-4096-495e-a3dc-d27fa80b3f94:2",
+        "labels": [
+          "Date"
+        ],
+        "property_keys": [
+          "id",
+          "value",
+          "page_number",
+          "source_chunk_id",
+          "name",
+          "evidence_text",
+          "canonical_name",
+          "confidence",
+          "source_file",
+          "created_at",
+          "fiscal_year",
+          "granularity"
+        ]
+      },
+      {
+        "element_id": "4:9bd725c2-4096-495e-a3dc-d27fa80b3f94:3",
+        "labels": [
+          "Person"
+        ],
+        "property_keys": [
+          "id",
+          "page_number",
+          "normalized_name",
+          "company_id",
+          "source_chunk_id",
+          "name",
+          "source_report_id",
+          "evidence_text",
+          "source_page",
+          "canonical_name",
+          "confidence",
+          "source_file",
+          "created_at"
+        ]
+      }
+    ],
+    "schema_version": "1.0.0",
+    "total_nodes": 4,
+    "total_relationships": 3
+  },
+  "status": "COMPLETED",
+  "uri": "neo4j+s://64a945c7.databases.neo4j.io"
+}

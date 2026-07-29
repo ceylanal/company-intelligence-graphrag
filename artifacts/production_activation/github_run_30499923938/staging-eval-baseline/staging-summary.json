@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.0.0",
+  "generated_at": "2026-07-29T23:38:13.502106+00:00",
+  "image_digest": "sha256:a0a8b9ae9b20a3c3e745961b2ee63bbde40dd6b626b970f8523924608ace54d3",
+  "sample_count": 34,
+  "completed_count": 34,
+  "request_success_rate": 1.0,
+  "correctness_rate": 0.3235,
+  "mean_token_f1": 0.0145,
+  "faithfulness_proxy_rate": 1.0,
+  "citation_correctness_proxy_rate": 0.3636,
+  "retrieval_recall_proxy": 0.6176,
+  "multi_hop_success_rate": 0.0,
+  "hallucination_rate": 0.5588,
+  "p50_latency_ms": 5060.59,
+  "p95_latency_ms": 5557.79,
+  "methodology": {
+    "correctness": "acceptable-answer substring match; correct abstention for unanswerable samples",
+    "faithfulness": "proxy: explicit citation marker or safe abstention; no LLM judge",
+    "citation_correctness": "proxy: cited expected source filename in public answer",
+    "retrieval_recall": "proxy: acceptable answer or expected source visible in public answer",
+    "hallucination": "answerable sample with neither acceptable answer nor safe abstention"
+  }
+}

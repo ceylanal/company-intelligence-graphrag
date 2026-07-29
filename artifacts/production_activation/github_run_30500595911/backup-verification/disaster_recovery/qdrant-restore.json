@@ -1,0 +1,141 @@
+{
+  "schema_version": "1.0.0",
+  "generated_at": "2026-07-29T23:47:29.645100+00:00",
+  "source_collection": "company_documents_staging",
+  "restore_collection": "company_documents_staging_restore_rehearsal_v2",
+  "status": "PASS",
+  "duration_seconds": 37.78,
+  "snapshot": {
+    "name": "company_documents_staging-2928627471520155-2026-07-29-23-47-47.snapshot",
+    "creation_time": "2026-07-29T23:47:48",
+    "size": 138363904,
+    "checksum": "535e99c09a993f359836be8a300d011f981df5369cc501e9b3e1765c3b1a4b32"
+  },
+  "checks": {
+    "points_count": true,
+    "scanned_points_count": true,
+    "vectors": true,
+    "payload_schema": true,
+    "id_payload_checksum": true
+  },
+  "source_inventory": {
+    "schema_version": "1.0.0",
+    "generated_at": "2026-07-29T23:47:47.460854+00:00",
+    "collection": "company_documents_staging",
+    "exists": true,
+    "points_count": 25859,
+    "scanned_points_count": 25859,
+    "vectors": {
+      "size": 384,
+      "distance": "Cosine",
+      "hnsw_config": null,
+      "quantization_config": null,
+      "on_disk": null,
+      "datatype": null,
+      "multivector_config": null
+    },
+    "payload_schema": {
+      "language": {
+        "data_type": "keyword",
+        "params": null,
+        "points": 25859
+      },
+      "ticker": {
+        "data_type": "keyword",
+        "params": null,
+        "points": 25859
+      },
+      "report_type": {
+        "data_type": "keyword",
+        "params": null,
+        "points": 25859
+      },
+      "company": {
+        "data_type": "keyword",
+        "params": null,
+        "points": 25859
+      },
+      "year": {
+        "data_type": "integer",
+        "params": null,
+        "points": 25859
+      }
+    },
+    "status": "green",
+    "optimizer_status": "ok",
+    "sample_point_ids": [
+      "00079b26-1ab6-5ec9-b170-4f2a9bb3dcb1",
+      "00082874-8b7b-5a23-91b7-8a5f99abf3ea",
+      "00095248-a1f1-58d0-8077-2e5ff7d8b4ac",
+      "000ec0b2-c231-5057-946c-5fef942eaa94",
+      "000f63c3-b656-5af7-9e23-1e8d43900dfe",
+      "000fb19f-a331-5872-8659-5ec6fd069a53",
+      "001222c4-cdf7-5f0f-93fa-5cce5fe9f752",
+      "001438ff-8b5e-53f8-ab41-fdd848883249",
+      "0017ddde-85db-50ac-82ec-675fbabceefd",
+      "0019f552-dd21-5d41-a98f-a3a9c9ba4841"
+    ],
+    "id_payload_checksum_sha256": "7ec2d5f537c205e73febf71978962bf1276f24a8aaaa445bd268feaa0b43fb01",
+    "storage_bytes": null
+  },
+  "restore_inventory": {
+    "schema_version": "1.0.0",
+    "generated_at": "2026-07-29T23:48:07.532194+00:00",
+    "collection": "company_documents_staging_restore_rehearsal_v2",
+    "exists": true,
+    "points_count": 25859,
+    "scanned_points_count": 25859,
+    "vectors": {
+      "size": 384,
+      "distance": "Cosine",
+      "hnsw_config": null,
+      "quantization_config": null,
+      "on_disk": null,
+      "datatype": null,
+      "multivector_config": null
+    },
+    "payload_schema": {
+      "language": {
+        "data_type": "keyword",
+        "params": null,
+        "points": 25859
+      },
+      "ticker": {
+        "data_type": "keyword",
+        "params": null,
+        "points": 25859
+      },
+      "company": {
+        "data_type": "keyword",
+        "params": null,
+        "points": 25859
+      },
+      "year": {
+        "data_type": "integer",
+        "params": null,
+        "points": 25859
+      },
+      "report_type": {
+        "data_type": "keyword",
+        "params": null,
+        "points": 25859
+      }
+    },
+    "status": "green",
+    "optimizer_status": "ok",
+    "sample_point_ids": [
+      "00079b26-1ab6-5ec9-b170-4f2a9bb3dcb1",
+      "00082874-8b7b-5a23-91b7-8a5f99abf3ea",
+      "00095248-a1f1-58d0-8077-2e5ff7d8b4ac",
+      "000ec0b2-c231-5057-946c-5fef942eaa94",
+      "000f63c3-b656-5af7-9e23-1e8d43900dfe",
+      "000fb19f-a331-5872-8659-5ec6fd069a53",
+      "001222c4-cdf7-5f0f-93fa-5cce5fe9f752",
+      "001438ff-8b5e-53f8-ab41-fdd848883249",
+      "0017ddde-85db-50ac-82ec-675fbabceefd",
+      "0019f552-dd21-5d41-a98f-a3a9c9ba4841"
+    ],
+    "id_payload_checksum_sha256": "7ec2d5f537c205e73febf71978962bf1276f24a8aaaa445bd268feaa0b43fb01",
+    "storage_bytes": null
+  }
+}

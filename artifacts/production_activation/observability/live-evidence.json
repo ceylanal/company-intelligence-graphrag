@@ -1,0 +1,41 @@
+{
+  "schema_version": "1.0.0",
+  "generated_at": "2026-07-29T23:43:42Z",
+  "revision": "company-graphrag-staging-sha-a0a8b9ae-run-99923938",
+  "status": "PARTIAL",
+  "opik": {
+    "status": "PASS",
+    "health_http_status": 200,
+    "trace_batch_http_status": 204,
+    "trace_patch_http_status": 204,
+    "sample_trace_id": "019fb03d-63cb-7ddd-ae1c-98f8c1c1d20f"
+  },
+  "grafana_otlp": {
+    "transport_http_status": 200,
+    "response_bytes": 2,
+    "export_error_matches": 0,
+    "ui_trace_query_verified": false
+  },
+  "application_trace_ids": [
+    "be0331caf2344c4aac46ddfd9c9793d3",
+    "b0ac15b4f34c43e182dc83d59511f200",
+    "4ff860411c2e4929a8c098139357c2e7",
+    "ddc0e17f473c40308c937dd234bcb6b1",
+    "4a2839d510cb4164b85c25434bf6dcc1",
+    "c588721d27d14d66b9e385280fddb573"
+  ],
+  "verified_fields": [
+    "request_id",
+    "run_id",
+    "trace_id",
+    "request latency",
+    "Opik trace delivery",
+    "Grafana OTLP authentication and transport"
+  ],
+  "unverified_fields": [
+    "Grafana trace search result",
+    "token usage field",
+    "cost metric field",
+    "retry/fallback metric field"
+  ]
+}

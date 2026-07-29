@@ -1,0 +1,1 @@
+ghcr.io/ceylanal/company-intelligence-graphrag@sha256:a0a8b9ae9b20a3c3e745961b2ee63bbde40dd6b626b970f8523924608ace54d3
