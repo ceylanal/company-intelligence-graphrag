@@ -39,6 +39,7 @@ jobs:
         env:
           GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
           GCP_REGION: ${{ vars.GCP_REGION }}
+          GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
           CLOUD_RUN_SERVICE: ${{ vars.CLOUD_RUN_SERVICE }}
           ARTIFACT_REGISTRY_IMAGE: ${{ vars.ARTIFACT_REGISTRY_IMAGE }}
           QDRANT_URL: ${{ vars.QDRANT_URL }}
