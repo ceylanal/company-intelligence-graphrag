@@ -58,17 +58,54 @@ def inventory(uri: str, username: str, password_env: str, database: str) -> dict
             orphan_nodes = session.run(
                 "MATCH (n) WHERE NOT (n)--() RETURN count(n) AS count"
             ).single()["count"]
-            provenance_sample_count = session.run(
-                "MATCH (n) WHERE n.source_id IS NOT NULL OR n.document_id IS NOT NULL "
-                "OR n.chunk_id IS NOT NULL RETURN count(n) AS count"
+            nodes_with_provenance = session.run(
+                "MATCH (n) WHERE n.source_chunk_id IS NOT NULL "
+                "AND n.source_file IS NOT NULL AND n.evidence_text IS NOT NULL "
+                "RETURN count(n) AS count"
             ).single()["count"]
+            nodes_missing_provenance = session.run(
+                "MATCH (n) WHERE n.source_chunk_id IS NULL "
+                "OR n.source_file IS NULL OR n.evidence_text IS NULL "
+                "RETURN count(n) AS count"
+            ).single()["count"]
+            relationships_missing_provenance = session.run(
+                "MATCH ()-[r]->() WHERE r.source_chunk_id IS NULL "
+                "OR r.source_file IS NULL OR r.evidence_text IS NULL "
+                "RETURN count(r) AS count"
+            ).single()["count"]
+            duplicate_node_ids = session.run(
+                "MATCH (n) WHERE n.id IS NOT NULL "
+                "WITH n.id AS id, count(*) AS occurrences "
+                "WHERE occurrences > 1 RETURN count(*) AS count"
+            ).single()["count"]
+            duplicate_relationship_ids = session.run(
+                "MATCH ()-[r]->() WHERE r.id IS NOT NULL "
+                "WITH r.id AS id, count(*) AS occurrences "
+                "WHERE occurrences > 1 RETURN count(*) AS count"
+            ).single()["count"]
+            multi_hop_queries = {
+                "person_company_metric": session.run(
+                    "MATCH (:Person)-[:HOLDS_ROLE_AT]->(:Company)"
+                    "-[:REPORTED_METRIC]->(:FinancialMetric) "
+                    "RETURN count(*) AS count"
+                ).single()["count"],
+                "company_metric_date": session.run(
+                    "MATCH (:Company)-[:REPORTED_METRIC]->(:FinancialMetric)"
+                    "-[:FOR_DATE]->(:Date) RETURN count(*) AS count"
+                ).single()["count"],
+                "person_company_metric_date": session.run(
+                    "MATCH (:Person)-[:HOLDS_ROLE_AT]->(:Company)"
+                    "-[:REPORTED_METRIC]->(:FinancialMetric)-[:FOR_DATE]->(:Date) "
+                    "RETURN count(*) AS count"
+                ).single()["count"],
+            }
     finally:
         driver.close()
 
     return {
         "schema_version": "1.0.0",
         "generated_at": datetime.now(UTC).isoformat(),
-        "database": database if not is_cloud else "neo4j",
+        "database": database,
         "total_nodes": total_nodes,
         "total_relationships": total_relationships,
         "labels": labels,
@@ -76,7 +113,12 @@ def inventory(uri: str, username: str, password_env: str, database: str) -> dict
         "constraints": constraints,
         "indexes": indexes,
         "orphan_nodes": orphan_nodes,
-        "nodes_with_provenance": provenance_sample_count,
+        "nodes_with_provenance": nodes_with_provenance,
+        "nodes_missing_provenance": nodes_missing_provenance,
+        "relationships_missing_provenance": relationships_missing_provenance,
+        "duplicate_node_ids": duplicate_node_ids,
+        "duplicate_relationship_ids": duplicate_relationship_ids,
+        "multi_hop_queries": multi_hop_queries,
         "sample_nodes": sample_nodes,
     }
 
