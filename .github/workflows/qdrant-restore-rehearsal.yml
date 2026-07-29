@@ -1,0 +1,48 @@
+name: Qdrant Restore Rehearsal
+
+on:
+  workflow_dispatch:
+    inputs:
+      execute:
+        description: Create and restore a real staging snapshot
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    environment: staging
+    timeout-minutes: 30
+    env:
+      QDRANT_URL: ${{ vars.QDRANT_URL }}
+      QDRANT_API_KEY: ${{ secrets.QDRANT_API_KEY }}
+      SOURCE_COLLECTION: ${{ vars.QDRANT_COLLECTION_NAME }}
+      RESTORE_COLLECTION: company_documents_staging_restore_rehearsal
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+        with:
+          enable-cache: true
+      - run: uv sync --frozen
+      - name: Snapshot and isolated restore
+        run: |
+          execute_flag=""
+          if [ "${{ inputs.execute }}" = "true" ]; then
+            execute_flag="--execute"
+          fi
+          uv run python scripts/qdrant_snapshot_rehearsal.py \
+            --url "$QDRANT_URL" \
+            --source-collection "$SOURCE_COLLECTION" \
+            --restore-collection "$RESTORE_COLLECTION" \
+            --output artifacts/production_activation/disaster_recovery/qdrant-restore.json \
+            $execute_flag
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: qdrant-restore-rehearsal
+          path: artifacts/production_activation/disaster_recovery/
+          if-no-files-found: error
