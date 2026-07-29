@@ -63,6 +63,19 @@ def main():
         help="Use deterministic mock vectors for testing",
     )
 
+    parser.add_argument(
+        "--qdrant-url",
+        type=str,
+        default="",
+        help="Target Qdrant server/cloud URL (default: read from QDRANT_URL environment variable)",
+    )
+    parser.add_argument(
+        "--qdrant-api-key-env",
+        type=str,
+        default="QDRANT_API_KEY",
+        help="Environment variable name for Qdrant API key (default: QDRANT_API_KEY)",
+    )
+
     args = parser.parse_args()
     input_path = args.input_path.resolve()
 
@@ -75,11 +88,14 @@ def main():
         batch_size=args.batch_size,
         collection_name=args.collection_name,
     )
+    qdrant_url = args.qdrant_url or os.environ.get("QDRANT_URL", "")
+    qdrant_api_key = os.environ.get(args.qdrant_api_key_env, "")
 
     console.print("\n[bold blue]🚀 Starting Vector Embedding & Qdrant Pipeline...[/bold blue]\n")
     console.print(f"  • Model: [cyan]{config.model_name}[/cyan]")
     console.print(f"  • Collection: [cyan]{config.collection_name}[/cyan]")
     console.print(f"  • Batch Size: [cyan]{config.batch_size}[/cyan]")
+    console.print(f"  • Qdrant Target URL: [cyan]{qdrant_url or 'default/embedded'}[/cyan]")
     console.print(f"  • Dry-Run: [yellow]{args.dry_run}[/yellow]")
     console.print(f"  • Reset Collection: [yellow]{args.reset}[/yellow]\n")
 
@@ -87,6 +103,8 @@ def main():
         summary = embed_and_ingest_chunks(
             input_path=input_path,
             config=config,
+            qdrant_url=qdrant_url or None,
+            qdrant_api_key=qdrant_api_key or None,
             dry_run=args.dry_run,
             reset_collection=args.reset,
             mock_encoder=args.mock,

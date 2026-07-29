@@ -153,38 +153,54 @@ class Neo4jGraphStore:
         self._mock_store: MockNeo4jStore | None = None
 
         if not mock_mode and HAS_NEO4J_DRIVER:
-            import httpx
-
-            is_neo4j_online = False
-            try:
-                auth_args: Any = (self.user, self.password) if self.password else None
-                res = httpx.get(settings.effective_neo4j_http_url, auth=auth_args, timeout=0.5, follow_redirects=True)
-                if res.status_code in (200, 301, 302):
-                    is_neo4j_online = True
-            except Exception:
-                is_neo4j_online = False
-
-            if is_neo4j_online:
+            is_cloud_uri = self.uri.startswith("neo4j+s://") or self.uri.startswith("neo4j://") or getattr(settings, "neo4j_use_cloud", False)
+            if is_cloud_uri:
                 try:
-                    drv = GraphDatabase.driver(self.uri, auth=(self.user, self.password), connection_timeout=1.0)
+                    drv = GraphDatabase.driver(self.uri, auth=(self.user, self.password), connection_timeout=10.0)
                     drv.verify_connectivity()
                     self._driver = drv
-                    logger.info("Connected to live Neo4j database", uri=self.uri)
+                    logger.info("Connected to live cloud Neo4j database", uri=self.uri)
                 except Exception as err:
                     logger.warning(
-                        "Neo4j connection failed, falling back to mock graph storage",
+                        "Cloud Neo4j connection failed, falling back to mock graph storage",
                         uri=self.uri,
                         error=str(err),
                     )
                     self.mock_mode = True
                     self._mock_store = MockNeo4jStore()
             else:
-                logger.warning(
-                    "Neo4j connection unavailable, using mock graph storage fallback",
-                    uri=self.uri,
-                )
-                self.mock_mode = True
-                self._mock_store = MockNeo4jStore()
+                import httpx
+
+                is_neo4j_online = False
+                try:
+                    auth_args: Any = (self.user, self.password) if self.password else None
+                    res = httpx.get(settings.effective_neo4j_http_url, auth=auth_args, timeout=0.5, follow_redirects=True)
+                    if res.status_code in (200, 301, 302):
+                        is_neo4j_online = True
+                except Exception:
+                    is_neo4j_online = False
+
+                if is_neo4j_online:
+                    try:
+                        drv = GraphDatabase.driver(self.uri, auth=(self.user, self.password), connection_timeout=1.0)
+                        drv.verify_connectivity()
+                        self._driver = drv
+                        logger.info("Connected to live Neo4j database", uri=self.uri)
+                    except Exception as err:
+                        logger.warning(
+                            "Neo4j connection failed, falling back to mock graph storage",
+                            uri=self.uri,
+                            error=str(err),
+                        )
+                        self.mock_mode = True
+                        self._mock_store = MockNeo4jStore()
+                else:
+                    logger.warning(
+                        "Neo4j connection unavailable, using mock graph storage fallback",
+                        uri=self.uri,
+                    )
+                    self.mock_mode = True
+                    self._mock_store = MockNeo4jStore()
         else:
             self.mock_mode = True
             self._mock_store = MockNeo4jStore()

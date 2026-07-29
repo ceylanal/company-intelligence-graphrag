@@ -78,35 +78,52 @@ class QdrantVectorStore:
             if self.path:
                 self._client = _get_shared_local_client(self.path)
             else:
-                is_qdrant_online = False
-                try:
-                    res = httpx.get(f"{self.url.rstrip('/')}/healthz", timeout=0.5)
-                    if res.status_code == 200:
-                        is_qdrant_online = True
-                except Exception:
-                    is_qdrant_online = False
-
-                if is_qdrant_online:
-                    kwargs: dict[str, Any] = {"url": self.url, "timeout": 15.0}
+                is_cloud = self.url.startswith("https://") or getattr(settings, "qdrant_use_cloud", False) or bool(self.api_key)
+                if is_cloud:
+                    kwargs: dict[str, Any] = {"url": self.url, "timeout": 30.0}
                     if self.api_key:
                         kwargs["api_key"] = self.api_key
                     try:
                         self._client = QdrantClient(**kwargs)
+                        logger.info("Connected to live cloud Qdrant storage", url=self.url)
                     except Exception as err:
                         logger.warning(
-                            "Qdrant REST client init failed, falling back to embedded local vector storage",
+                            "Cloud Qdrant client init failed, falling back to embedded local vector storage",
                             url=self.url,
                             error=str(err),
                             fallback_path=DEFAULT_LOCAL_VECTOR_STORE_PATH,
                         )
                         self._client = _get_shared_local_client(DEFAULT_LOCAL_VECTOR_STORE_PATH)
                 else:
-                    logger.warning(
-                        "Qdrant REST connection unavailable, using embedded local vector storage",
-                        url=self.url,
-                        fallback_path=DEFAULT_LOCAL_VECTOR_STORE_PATH,
-                    )
-                    self._client = _get_shared_local_client(DEFAULT_LOCAL_VECTOR_STORE_PATH)
+                    is_qdrant_online = False
+                    try:
+                        res = httpx.get(f"{self.url.rstrip('/')}/healthz", timeout=0.5)
+                        if res.status_code == 200:
+                            is_qdrant_online = True
+                    except Exception:
+                        is_qdrant_online = False
+
+                    if is_qdrant_online:
+                        kwargs = {"url": self.url, "timeout": 15.0}
+                        if self.api_key:
+                            kwargs["api_key"] = self.api_key
+                        try:
+                            self._client = QdrantClient(**kwargs)
+                        except Exception as err:
+                            logger.warning(
+                                "Qdrant REST client init failed, falling back to embedded local vector storage",
+                                url=self.url,
+                                error=str(err),
+                                fallback_path=DEFAULT_LOCAL_VECTOR_STORE_PATH,
+                            )
+                            self._client = _get_shared_local_client(DEFAULT_LOCAL_VECTOR_STORE_PATH)
+                    else:
+                        logger.warning(
+                            "Local Qdrant REST service unavailable, using embedded local vector storage fallback",
+                            url=self.url,
+                            fallback_path=DEFAULT_LOCAL_VECTOR_STORE_PATH,
+                        )
+                        self._client = _get_shared_local_client(DEFAULT_LOCAL_VECTOR_STORE_PATH)
 
         return self._client
 

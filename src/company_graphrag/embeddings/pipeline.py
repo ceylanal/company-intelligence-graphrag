@@ -25,12 +25,13 @@ def generate_deterministic_point_id(chunk_id: str) -> str:
 
 
 def embed_and_ingest_chunks(
-    input_path: Path = DEFAULT_CHUNKS_DIR,
+    input_path: Path | str = DEFAULT_CHUNKS_DIR,
     config: EmbeddingConfig | None = None,
     dry_run: bool = False,
     reset_collection: bool = False,
     mock_encoder: bool = False,
     qdrant_url: str | None = None,
+    qdrant_api_key: str | None = None,
 ) -> IngestionSummary:
     """Read chunk records from JSONL, generate embeddings, and load into Qdrant.
 
@@ -41,6 +42,7 @@ def embed_and_ingest_chunks(
         reset_collection: If True, delete and recreate Qdrant collection first.
         mock_encoder: If True, use deterministic mock vectors for testing.
         qdrant_url: Override Qdrant connection URL.
+        qdrant_api_key: Override Qdrant API key.
 
     Returns:
         IngestionSummary object with execution statistics.
@@ -84,7 +86,7 @@ def embed_and_ingest_chunks(
 
     # Initialize Encoder and Store
     encoder = TextEmbeddingEncoder(model_name=cfg.model_name, mock=mock_encoder)
-    store = QdrantVectorStore(url=qdrant_url or settings.effective_qdrant_url)
+    store = QdrantVectorStore(url=qdrant_url or settings.effective_qdrant_url, api_key=qdrant_api_key or settings.qdrant_api_key)
 
     # Ensure Collection exists
     store.ensure_collection(

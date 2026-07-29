@@ -85,6 +85,46 @@ def inventory(uri: str, username: str, password_env: str, database: str) -> dict
     }
 
 
+def migrate(
+    uri: str,
+    username: str,
+    password_env: str,
+    database: str,
+    input_dir: Path,
+    execute: bool,
+) -> dict[str, Any]:
+    if not execute:
+        return {
+            "status": "DRY_RUN",
+            "uri": uri,
+            "database": database,
+            "input_dir": str(input_dir),
+        }
+
+    password = os.environ.get(password_env, "")
+    if not password:
+        raise ValueError(f"{password_env} is not configured")
+
+    from company_graphrag.graph.ingestion.pipeline import GraphIngestionPipeline
+    from company_graphrag.storage.neo4j import Neo4jGraphStore
+
+    neo4j_store = Neo4jGraphStore(uri=uri, user=username, password=password, database=database)
+    pipeline = GraphIngestionPipeline(neo4j_store=neo4j_store)
+
+    audit = pipeline.run_pipeline(input_dir=input_dir)
+    neo4j_store.close()
+
+    inv = inventory(uri, username, password_env, database)
+    return {
+        "status": "COMPLETED",
+        "uri": uri,
+        "database": database,
+        "input_dir": str(input_dir),
+        "audit": audit.model_dump(mode="json"),
+        "inventory": inv,
+    }
+
+
 def _write(path: Path, report: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(report, indent=2, sort_keys=True, default=str) + "\n", encoding="utf-8")
@@ -102,6 +142,15 @@ def main() -> None:
     inv.add_argument("--database", default="neo4j")
     inv.add_argument("--output", type=Path, required=True)
 
+    mig = subparsers.add_parser("migrate")
+    mig.add_argument("--uri", required=True)
+    mig.add_argument("--username", default="neo4j")
+    mig.add_argument("--password-env", default="NEO4J_PASSWORD")
+    mig.add_argument("--database", default="neo4j")
+    mig.add_argument("--input-dir", type=Path, default=Path("data/graph/sample_day20"))
+    mig.add_argument("--execute", action="store_true")
+    mig.add_argument("--output", type=Path, required=True)
+
     compare = subparsers.add_parser("compare")
     compare.add_argument("--source", type=Path, required=True)
     compare.add_argument("--target", type=Path, required=True)
@@ -110,6 +159,17 @@ def main() -> None:
     args = parser.parse_args()
     if args.command == "inventory":
         _write(args.output, inventory(args.uri, args.username, args.password_env, args.database))
+        return
+    elif args.command == "migrate":
+        report = migrate(
+            args.uri,
+            args.username,
+            args.password_env,
+            args.database,
+            args.input_dir,
+            args.execute,
+        )
+        _write(args.output, report)
         return
 
     source = json.loads(args.source.read_text(encoding="utf-8"))

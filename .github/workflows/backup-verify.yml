@@ -8,6 +8,11 @@ on:
         required: true
         default: false
         type: boolean
+      migrate:
+        description: Execute Qdrant Cloud and Neo4j Aura data migration
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -34,8 +39,22 @@ jobs:
         run: |
           uv run python scripts/qdrant_activation.py --help
           uv run python scripts/neo4j_activation.py --help
+      - name: Migrate staging databases
+        if: inputs.migrate
+        run: |
+          uv run python scripts/embed_chunks.py data/processed/chunks \
+            --collection-name "$QDRANT_COLLECTION_NAME" \
+            --qdrant-url "$QDRANT_URL" \
+            --batch-size 64
+          uv run python scripts/neo4j_activation.py migrate \
+            --uri "$NEO4J_URI" \
+            --username "$NEO4J_USERNAME" \
+            --database "$NEO4J_DATABASE" \
+            --input-dir data/graph/sample_day20 \
+            --execute \
+            --output artifacts/production_activation/neo4j/cloud-migration-result.json
       - name: Inventory staging databases
-        if: inputs.execute
+        if: inputs.execute || inputs.migrate
         run: |
           uv run python scripts/qdrant_activation.py inventory \
             --url "$QDRANT_URL" \
