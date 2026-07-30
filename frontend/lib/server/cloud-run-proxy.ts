@@ -75,6 +75,22 @@ async function googleFailure(response: Response, stage: ProxyFailure["stage"]): 
   return new ProxyFailure(stage, response.status, reason);
 }
 
+function oidcClaimsForLog(token: string): Record<string, unknown> | undefined {
+  try {
+    const payload = JSON.parse(Buffer.from(token.split(".")[1], "base64url").toString("utf8")) as Record<string, unknown>;
+    return {
+      iss: payload.iss,
+      aud: payload.aud,
+      sub: payload.sub,
+      owner_id: payload.owner_id,
+      project_id: payload.project_id,
+      environment: payload.environment,
+    };
+  } catch {
+    return undefined;
+  }
+}
+
 function config(): ProxyConfig {
   const values = {
     backendUrl: process.env.CLOUD_RUN_STAGING_URL?.replace(/\/$/, "") ?? "",
@@ -195,7 +211,12 @@ export async function proxyCloudRunRequest(request: Request, path: string[]): Pr
     });
   } catch (error) {
     if (error instanceof ProxyFailure) {
-      console.error("Cloud Run proxy authentication failed", { stage: error.stage, status: error.status, reason: error.reason });
+      console.error("Cloud Run proxy authentication failed", {
+        stage: error.stage,
+        status: error.status,
+        reason: error.reason,
+        claims: error.stage === "sts" ? oidcClaimsForLog(oidcToken) : undefined,
+      });
     } else if (error instanceof DOMException && error.name === "AbortError") {
       console.error("Cloud Run proxy request aborted");
     } else {
