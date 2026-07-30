@@ -30,6 +30,7 @@ if [ -n "${GITHUB_RUN_ID:-}" ]; then
   run_suffix="$(printf '%s' "$GITHUB_RUN_ID" | tail -c 8)"
   revision_suffix="sha-$(printf '%s' "$digest_prefix" | cut -c1-8)-run-${run_suffix}"
 fi
+revision_name="${CLOUD_RUN_SERVICE}-${revision_suffix}"
 
 gcloud run deploy "$CLOUD_RUN_SERVICE" \
   --project "$GCP_PROJECT_ID" \
@@ -49,6 +50,25 @@ gcloud run deploy "$CLOUD_RUN_SERVICE" \
   --no-allow-unauthenticated \
   --set-env-vars "ENVIRONMENT=staging,CHECKPOINT_DIR=/tmp/company-graphrag/checkpoints,RUN_MANIFEST_DIR=/tmp/company-graphrag/run-manifests,QDRANT_USE_CLOUD=true,QDRANT_URL=${QDRANT_URL},QDRANT_COLLECTION_NAME=${QDRANT_COLLECTION_NAME},NEO4J_USE_CLOUD=true,NEO4J_URI=${NEO4J_URI},NEO4J_USERNAME=${NEO4J_USERNAME},NEO4J_DATABASE=${NEO4J_DATABASE},LLM_PROVIDER=${LLM_PROVIDER},LLM_MODEL=${LLM_MODEL},TELEMETRY_ENABLED=true,TELEMETRY_EXPORTER=otlp,OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT},OPIK_ENABLED=true,OPIK_WORKSPACE=${OPIK_WORKSPACE},TELEMETRY_CAPTURE_PROMPTS=false" \
   --set-secrets "API_KEY=company-graphrag-api-key:latest,LLM_API_KEY=company-graphrag-llm-key:latest,QDRANT_API_KEY=company-graphrag-qdrant-key:latest,NEO4J_PASSWORD=company-graphrag-neo4j-password:latest,OPIK_API_KEY=company-graphrag-opik-key:latest,OTEL_EXPORTER_OTLP_HEADERS=company-graphrag-otel-headers:latest"
+
+# A superseded asynchronous service operation can leave a healthy new revision
+# retired while the stable URL still targets the previous revision. Make the
+# intended staging target explicit and fail closed if traffic does not converge.
+gcloud run services update-traffic "$CLOUD_RUN_SERVICE" \
+  --project "$GCP_PROJECT_ID" \
+  --region "$GCP_REGION" \
+  --to-revisions "${revision_name}=100" \
+  --quiet
+active_revision="$(
+  gcloud run services describe "$CLOUD_RUN_SERVICE" \
+    --project "$GCP_PROJECT_ID" \
+    --region "$GCP_REGION" \
+    --format 'value(status.traffic[0].revisionName)'
+)"
+if [ "$active_revision" != "$revision_name" ]; then
+  echo "Staging traffic target mismatch: expected $revision_name, got $active_revision" >&2
+  exit 1
+fi
 
 # Keep the staging service private while allowing the dedicated deployer identity
 # to run authenticated smoke and rollback verification.
