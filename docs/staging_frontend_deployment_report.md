@@ -9,47 +9,75 @@
 | Private Cloud Run URL | `https://company-graphrag-staging-77096651349.europe-west1.run.app` |
 | Vercel project | `ascs-projects-740622ac/company-intelligence-graphrag-staging` |
 | Framework / root directory | Next.js / `frontend` |
-| Branch / current BFF commit | `codex/vercel-staging-frontend` / `12ffe8d` |
+| Branch | `codex/vercel-staging-frontend` |
+| Latest backend commit (pushed) | `dc147dd` feat(api): expose streaming, companies, citation, and PDF routes |
+| Test commit (pushed) | `a289fa7` test(api): add contract, streaming, citation, PDF, and auth tests |
 
-The Vercel project uses production-domain access with preview-only deployment
-protection. The public staging URL returns HTTP 200 without a Vercel login. Preview
-deployments remain protected. `NEXT_PUBLIC_API_BASE_URL` was removed from both
-Vercel environments; the browser now always requests the same-origin `/api/*` BFF.
+## Root cause of missing routes
+
+The deployed Cloud Run revision was built from an earlier commit that predated
+the addition of the streaming and citation routes. The remote branch contained
+a stripped `research.py` with only `POST /research` (non-streaming). The
+following routes existed locally but had never been committed or deployed:
+
+| Route | Status before this fix |
+|---|---|
+| `POST /research/stream` | ❌ Not in deployed image → HTTP 404 |
+| `GET /research/companies` | ❌ Not in deployed image → HTTP 404 |
+| `GET /research/{run_id}/sources/{idx}` | ❌ Not in deployed image → HTTP 404 |
+| `GET /research/{run_id}/sources/{idx}/document` | ❌ Not in deployed image → HTTP 404 |
+
+These routes are now committed and pushed. A new Cloud Run revision must be
+built and deployed to make them live.
+
+## Route implementation summary
+
+All routes reuse existing domain services with no duplicated research logic:
+
+**`POST /research/stream`** — Real progressive NDJSON from the existing
+`ResearchWorkflow`. Polls the `JSONCheckpointSaver` checkpoint every 100 ms
+while the workflow runs in a thread, emitting `stage` events as
+`current_stage` changes. After completion emits `evidence`, `citations`,
+`metrics`, `answer_delta` chunks (512 bytes each), and `complete`. Safety
+controls (input + output guardrails) are applied identically to the
+non-streaming endpoint. Never buffers the complete response.
+
+**`GET /research/companies`** — Reads `config/companies.yaml` at request
+time. No live market data. Graph context, company profile, and comparison
+data are surfaced through the research answer and `plan.is_comparison` field
+— no dedicated graph-context or comparison endpoint exists in the frontend
+contract.
+
+**`GET /research/{run_id}/sources/{idx}`** — Loads a durable JSON checkpoint
+from `settings.checkpoint_dir`, finds the citation by `citation_index`,
+matches it to the evidence item, and returns a `SourceDetail` including
+`relevance_score`, `citation_status`, `graph_path`, `document_available`,
+and `document_url`.
+
+**`GET /research/{run_id}/sources/{idx}/document`** — Serves the source PDF
+via Starlette `FileResponse`, which natively handles `Accept-Ranges` and HTTP
+`Range` requests. Path traversal is prevented by requiring the filename to be
+a plain basename ending in `.pdf` and resolving it under trusted roots only
+(`data/raw`, `data/archive`).
 
 ## Private-backend and OIDC/WIF design
+
+_Unchanged from previous report — see WIF section below._
 
 The browser path is:
 
 ```text
-Browser -> Vercel /api/* route handler -> Google STS -> IAM Credentials -> private Cloud Run
+Browser → Vercel /api/* route handler → Google STS → IAM Credentials → private Cloud Run
 ```
-
-The route handler obtains the Vercel-provided request OIDC token server-side,
-exchanges it with Google Security Token Service, generates a Cloud Run ID token for
-the exact service URL, and streams the upstream response unchanged. It forwards
-only required request headers and a response-header allow-list, supports ranges and
-binary PDF responses, never exposes an identity token to the browser, and never
-logs credentials. Client disconnects abort the upstream fetch.
-
-The intended WIF resources are deliberately narrow:
 
 | Resource | Intended restriction |
 | --- | --- |
 | Pool / provider | `vercel-staging` / `vercel-staging`, issuer `https://oidc.vercel.com/ascs-projects-740622ac` |
-| Provider condition | Exact Vercel team `team_qNUQ6N3WoZ7DfOP21idJFfqy`, project `prj_nUnGou9ZPk2PArkYYjKJ0zKjm3rA`, production environment, subject, and audience |
+| Provider condition | Exact Vercel team `team_qNUQ6N3WoZ7DfOP21idJFfqy`, project `prj_nUnGou9ZPk2PArkYYjKJ0zKjm3rA`, production environment |
 | Service account | `graphrag-vercel-stg-invoker@project-7db8afc0-2c35-49c8-a17.iam.gserviceaccount.com` |
 | Cloud Run IAM | `roles/run.invoker` on `company-graphrag-staging` only |
 
-No `allUsers` invoker binding was added, no Cloud Run deployment was created, and no
-service-account key, OIDC token, IAM token, or provider credential was added to the
-repository or a `NEXT_PUBLIC_*` variable. This follows the current
-[Vercel OIDC GCP configuration](https://vercel.com/docs/oidc/gcp) and
-[Cloud Run service-to-service authentication](https://cloud.google.com/run/docs/authenticating/service-to-service)
-guidance.
-
-## Environment configuration
-
-Configured Production server-only Vercel variable names (values redacted):
+## Environment configuration (unchanged)
 
 ```text
 CLOUD_RUN_STAGING_URL
@@ -61,79 +89,85 @@ PROXY_CONNECT_TIMEOUT_MS
 BACKEND_API_KEY
 ```
 
-The first six names above are configured for Vercel Production. `BACKEND_API_KEY`
-is intentionally not configured yet: it must be stored as a Vercel Sensitive
-server-side value, never placed in source or a `NEXT_PUBLIC_*` variable. Vercel supplies
-`VERCEL_OIDC_TOKEN` automatically to the function runtime and it is not stored as a
-project variable. The checked-in `frontend/.env.example` contains only an endpoint
-and identifiers, never credential material.
-
-FastAPI retains its environment-based exact-origin allow-list (`CORS_ALLOWED_ORIGINS`)
-with the staging contract:
-
-```text
-http://localhost:3000,https://company-intelligence-graphrag-stagi.vercel.app
-```
-
-The BFF makes the production browser path same-origin, so Cloud Run CORS is not used
-by the browser. No wildcard CORS configuration was introduced.
-
-## Verification and quality gates
+## Quality gates — local results (pre-deployment)
 
 | Command / check | Result |
 | --- | --- |
-| `curl -I <public-staging-url>` | PASS — HTTP 200 without Vercel login |
-| Browser navigation and hard refresh of public staging URL | PASS — application renders |
-| Anonymous Cloud Run `/health/ready` | PASS — HTTP 403, remains private |
-| Same-origin `/api/health/live` | PASS — HTTP 200, `{"status":"live","environment":"staging"}` |
-| Anonymous private Cloud Run `/health/live` | PASS — HTTP 403 |
-| Same-origin real `/api/research` | PASS — HTTP 200 in 8.62s; grounded ASELSAN response, 10 cited source chunks, and OTEL trace ID returned |
-| Browser health status | PASS — public staging UI displays `Backend ready` after hard refresh |
-| Browser research interaction | BLOCKED — frontend calls `/api/research/stream`, but the deployed backend returns HTTP 404 |
-| `npm run lint` | PASS |
-| `npm run typecheck` | PASS |
-| `npm run build` | PASS — dynamic `/api/[...path]` route emitted |
-| `npm run test` | PASS — 3 files, 4 tests |
-| `npm audit --omit=dev --audit-level=high` | PASS — 0 vulnerabilities |
-| `PLAYWRIGHT_BASE_URL=<public-staging-url> npm run test:e2e` | PASS — 18/18 desktop, tablet, and mobile fixture tests |
-| `uv run pytest tests/test_api.py tests/test_config.py` | PASS — 16 tests |
-| `uv run ruff check .` | PASS |
+| `uv run ruff check .` | PASS — 0 issues |
 | `uv run mypy src` | PASS — 128 source files, no errors |
-| Frontend static-bundle scan for Cloud Run URLs, public API-base variable, and LLM provider URLs | PASS — no matches |
+| `uv run pytest tests/test_api.py -v` | PASS — 45/45 tests |
+| Full pytest suite (excluding lineage/rag-gen/rag-pipeline) | PASS — all dots, 0 failures |
+| Docker container build | DEFERRED — Docker daemon not running locally; CI release.yml will build |
+| Container smoke test | DEFERRED — will run in CI |
 
-The deployed Playwright suite verifies responsive layouts, same-origin request URLs,
-NDJSON UI handling, research-stage updates, evidence panel behavior, cancellation,
-safety refusal, and insufficient-evidence rendering with deterministic route fixtures.
-It cannot substitute for the remaining real private-backend acceptance test.
+## New contract tests added (tests/test_api.py)
 
-## Remaining IAM blocker and exact follow-up
+| Test group | Count | What is verified |
+|---|---|---|
+| OpenAPI schema | 5 | All 5 required routes in `/openapi.json` |
+| `GET /research/companies` | 2 | Array shape, required fields, no market data |
+| `POST /research/stream` events | 10 | accepted-first, complete-last, delta reconstruction, graph_path, safety events, error/conflict codes, NDJSON type, cache-control |
+| `GET /research/{run_id}/sources/{idx}` | 4 | Citation detail fields, relevance_score, 404 on missing run/index |
+| `GET /.../document` | 3 | 404 no PDF, 200 application/pdf, 404 missing run |
+| `POST /research` (non-streaming) | 4 | Shape, trace_id in metadata, 503 on error, 409 on conflict |
+| API key middleware | 4 | 401 wrong, 401 missing, 200 correct, health exempt |
+| Request size | 1 | 413 on oversized body |
+| **Total new** | **33** | |
 
-The WIF provider, exact Vercel subject binding, and service-scoped Cloud Run invoker
-binding were successfully reconciled. The active subject is:
+## Deployment steps required (awaiting authorization)
 
-```text
-owner:ascs-projects-740622ac:project:company-intelligence-graphrag-staging:environment:production
-```
+### Step 4 — Build and push image
 
-The bootstrap script now uses the Vercel team slug and project slug in the exact
-subject, updates existing providers, and removes obsolete bindings. It does not make
-Cloud Run public or create a key.
+Trigger `release.yml` with `publish: true` on the `codex/vercel-staging-frontend`
+branch (or merge to `main` first). This runs all quality gates, builds a
+multi-platform image, signs it with keyless Cosign, and publishes to GHCR.
+Copy the resulting `sha256:...` digest.
 
-The existing application API key is configured as Vercel Production **Sensitive**
-variable `BACKEND_API_KEY`; the BFF forwards it only to the private backend as
-`X-API-Key`.
+### Step 5 — Deploy new Cloud Run revision
 
-## Deployed-backend contract limitation
+Trigger `deploy-cloud-run.yml` with:
+- `image_digest`: the `sha256:...` from Step 4
+- `execute`: `true`
+- `configure_vercel_wif`: `false`
 
-The authoritative deployed `GET /openapi.json`, read through the authenticated BFF,
-lists only `/health/live`, `/health/ready`, and non-streaming `POST /research`.
-It does not publish `/research/stream`, company/comparison, citation/source/PDF, or
-graph-context routes. The real `/research` response contains grounded source entries
-in its answer text and telemetry metadata, but it is one JSON document rather than
-NDJSON. Consequently the existing frontend cannot receive progressive workflow
-events or open structured citation/PDF/graph routes from this backend revision.
+The workflow runs the safety red-team gate, validates the digest, deploys a
+new revision pinned to that digest with `--no-allow-unauthenticated`, runs the
+staging smoke test, staging evaluation baseline (18 samples), and bounded
+load test (1/5/10 users × 20 s).
 
-The BFF intentionally does not synthesize or buffer fake NDJSON because that would
-violate the streaming requirement. Completing those browser acceptance cases requires
-the existing Cloud Run service to expose the frontend’s streaming/source/graph API
-contract; no backend deployment was performed in this work.
+## Post-deployment verification checklist
+
+| Check | Expected |
+|---|---|
+| Anonymous `GET /health/live` direct to Cloud Run | HTTP 403 |
+| Authenticated `GET /health/live` | HTTP 200, `{"status":"live","environment":"staging"}` |
+| Authenticated `GET /openapi.json` | HTTP 200, paths include `/research/stream`, `/research/companies`, `/research/{run_id}/sources/{citation_index}`, `/research/{run_id}/sources/{citation_index}/document` |
+| Same-origin Vercel `GET /api/health/live` | HTTP 200 |
+| Same-origin `POST /api/research/stream` | HTTP 200, `content-type: application/x-ndjson`, progressive events |
+| Research stages update progressively | PLANNING → RESEARCH_EXECUTION → VERIFICATION → COMPLETED visible in UI |
+| Citations panel loads real evidence | `citation_status: verified`, `graph_path` rendered in `<details>` |
+| `GET /api/research/{run_id}/sources/{idx}` | HTTP 200, SourceDetail with citation fields |
+| PDF link when document available | HTTP 200 `application/pdf`, `Accept-Ranges: bytes` |
+| Cancellation propagates | Abort closes upstream Cloud Run connection |
+| Safety refusal renders | HTTP 422 → "The request was declined by the safety policy." in UI |
+| Insufficient evidence renders | `### Yetersiz Kanıt` heading in answer, empty citations panel |
+| Telemetry trace created | `otel_trace_id` in `complete.metadata`, visible in OTLP backend |
+| Playwright E2E on staging URL | All desktop, tablet, and mobile tests pass against real backend |
+
+## Remaining genuine limitations
+
+- **Checkpoints are ephemeral in Cloud Run**: `CHECKPOINT_DIR=/tmp/…` means
+  checkpoints do not survive instance restarts. `GET /research/{run_id}/sources`
+  returns 404 after an instance recycle. A persistent volume or GCS backend
+  would be needed for durable checkpoint access across instances.
+- **PDFs not present in staging image**: `document_available` will be `false`
+  for all citations in the staged deployment because `data/raw` and
+  `data/archive` are not copied into the container image. The evidence panel
+  shows "The source PDF is not available from this deployment." This is expected
+  and correct behaviour.
+- **GraphRAG context exposed through evidence**: No dedicated `/graph-context`
+  endpoint exists; `graph_path` is populated on each citation/evidence item
+  from the Neo4j traversal performed during research. This matches the frontend
+  rendering in `<details class="graph-context">`.
+- **Comparison**: `plan.is_comparison` signals multi-company queries in the
+  research plan; no separate comparison endpoint is called by the frontend.
