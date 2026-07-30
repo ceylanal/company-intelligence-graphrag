@@ -102,6 +102,7 @@ async function googleIdToken(oidcToken: string, proxyConfig: ProxyConfig, signal
       audience,
       grant_type: "urn:ietf:params:oauth:grant-type:token-exchange",
       requested_token_type: "urn:ietf:params:oauth:token-type:access_token",
+      scope: "https://www.googleapis.com/auth/cloud-platform",
       subject_token: oidcToken,
       subject_token_type: "urn:ietf:params:oauth:token-type:jwt",
     }),
