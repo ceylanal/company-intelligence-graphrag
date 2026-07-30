@@ -170,10 +170,12 @@ test("shows backend unavailable and a retry action", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Retry" })).toBeVisible();
 });
 
-test("cancels an active request and sends no browser request to an LLM provider", async ({ page }) => {
+test("cancels an active request and sends no browser request to Cloud Run or an LLM provider", async ({ page }) => {
   const providerRequests: string[] = [];
+  const cloudRunRequests: string[] = [];
   page.on("request", (request) => {
     if (/openai|anthropic|gemini|generativelanguage/i.test(request.url())) providerRequests.push(request.url());
+    if (/\.a\.run\.app\b/i.test(request.url())) cloudRunRequests.push(request.url());
   });
   await page.route("**/health/live", (route) => route.fulfill({ status: 200, json: { status: "live" } }));
   await page.route("**/research/companies", (route) => route.fulfill({ status: 200, json: companies }));
@@ -187,6 +189,7 @@ test("cancels an active request and sends no browser request to an LLM provider"
   await page.getByRole("button", { name: "Cancel research" }).click();
   await expect(page.getByText("Research cancelled. Any partial answer above has been preserved.")).toBeVisible();
   expect(providerRequests).toEqual([]);
+  expect(cloudRunRequests).toEqual([]);
 });
 
 test("company profile contains repository metadata and no fake market values", async ({ page }) => {
