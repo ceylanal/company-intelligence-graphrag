@@ -50,9 +50,29 @@ type TokenExchange = { access_token?: string };
 type IdTokenResponse = { token?: string };
 
 class ProxyFailure extends Error {
-  constructor(readonly stage: "sts" | "iamcredentials" | "upstream", readonly status?: number) {
+  constructor(
+    readonly stage: "sts" | "iamcredentials" | "upstream",
+    readonly status?: number,
+    readonly reason?: string,
+  ) {
     super(stage);
   }
+}
+
+async function googleFailure(response: Response, stage: ProxyFailure["stage"]): Promise<ProxyFailure> {
+  let reason: string | undefined;
+  try {
+    const payload = (await response.json()) as { error?: unknown; error_description?: string };
+    const message = typeof payload.error === "string"
+      ? payload.error_description ?? payload.error
+      : typeof payload.error === "object" && payload.error && "message" in payload.error && typeof payload.error.message === "string"
+        ? payload.error.message
+        : undefined;
+    reason = message?.slice(0, 240);
+  } catch {
+    reason = undefined;
+  }
+  return new ProxyFailure(stage, response.status, reason);
 }
 
 function config(): ProxyConfig {
@@ -87,7 +107,7 @@ async function googleIdToken(oidcToken: string, proxyConfig: ProxyConfig, signal
     }),
     signal,
   });
-  if (!exchange.ok) throw new ProxyFailure("sts", exchange.status);
+  if (!exchange.ok) throw await googleFailure(exchange, "sts");
   const accessToken = (await exchange.json() as TokenExchange).access_token;
   if (!accessToken) throw new ProxyFailure("sts");
 
@@ -103,7 +123,7 @@ async function googleIdToken(oidcToken: string, proxyConfig: ProxyConfig, signal
       signal,
     },
   );
-  if (!idToken.ok) throw new ProxyFailure("iamcredentials", idToken.status);
+  if (!idToken.ok) throw await googleFailure(idToken, "iamcredentials");
   const token = (await idToken.json() as IdTokenResponse).token;
   if (!token) throw new ProxyFailure("iamcredentials");
   return token;
@@ -174,7 +194,7 @@ export async function proxyCloudRunRequest(request: Request, path: string[]): Pr
     });
   } catch (error) {
     if (error instanceof ProxyFailure) {
-      console.error("Cloud Run proxy authentication failed", { stage: error.stage, status: error.status });
+      console.error("Cloud Run proxy authentication failed", { stage: error.stage, status: error.status, reason: error.reason });
     } else if (error instanceof DOMException && error.name === "AbortError") {
       console.error("Cloud Run proxy request aborted");
     } else {
