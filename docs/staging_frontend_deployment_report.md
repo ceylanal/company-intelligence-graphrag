@@ -5,11 +5,11 @@
 | Item | Value |
 | --- | --- |
 | Public staging URL | `https://company-intelligence-graphrag-stagi.vercel.app` |
-| Latest application deployment | `https://company-intelligence-graphrag-staging-lcw3121ft.vercel.app` |
-| Private Cloud Run URL | `https://company-graphrag-staging-c6oeawtcxq-ew.a.run.app` |
+| Latest application deployment | `https://company-intelligence-graphrag-staging-141luoz9c.vercel.app` |
+| Private Cloud Run URL | `https://company-graphrag-staging-77096651349.europe-west1.run.app` |
 | Vercel project | `ascs-projects-740622ac/company-intelligence-graphrag-staging` |
 | Framework / root directory | Next.js / `frontend` |
-| Branch / commits | `codex/vercel-staging-frontend` / `c21aae0`, `f302fb3` |
+| Branch / current BFF commit | `codex/vercel-staging-frontend` / `dfa09d3` |
 
 The Vercel project uses production-domain access with preview-only deployment
 protection. The public staging URL returns HTTP 200 without a Vercel login. Preview
@@ -37,7 +37,7 @@ The intended WIF resources are deliberately narrow:
 | --- | --- |
 | Pool / provider | `vercel-staging` / `vercel-staging`, issuer `https://oidc.vercel.com/ascs-projects-740622ac` |
 | Provider condition | Exact Vercel team `team_qNUQ6N3WoZ7DfOP21idJFfqy`, project `prj_nUnGou9ZPk2PArkYYjKJ0zKjm3rA`, production environment, subject, and audience |
-| Service account | `company-graphrag-vercel-staging-invoker@PROJECT_ID.iam.gserviceaccount.com` |
+| Service account | `graphrag-vercel-stg-invoker@project-7db8afc0-2c35-49c8-a17.iam.gserviceaccount.com` |
 | Cloud Run IAM | `roles/run.invoker` on `company-graphrag-staging` only |
 
 No `allUsers` invoker binding was added, no Cloud Run deployment was created, and no
@@ -49,8 +49,7 @@ guidance.
 
 ## Environment configuration
 
-Configured server-only Vercel variable names (values redacted where not yet
-available):
+Configured Production server-only Vercel variable names (values redacted):
 
 ```text
 CLOUD_RUN_STAGING_URL
@@ -61,10 +60,10 @@ GCP_SERVICE_ACCOUNT_EMAIL
 PROXY_CONNECT_TIMEOUT_MS
 ```
 
-`CLOUD_RUN_STAGING_URL` is configured for Production and Preview. The remaining
-federation identifiers cannot be configured until the WIF resources exist. The
-checked-in `frontend/.env.example` contains only an endpoint and identifiers, never
-credential material.
+All six names above are configured for Vercel Production. Vercel supplies
+`VERCEL_OIDC_TOKEN` automatically to the function runtime and it is not stored as a
+project variable. The checked-in `frontend/.env.example` contains only an endpoint
+and identifiers, never credential material.
 
 FastAPI retains its environment-based exact-origin allow-list (`CORS_ALLOWED_ORIGINS`)
 with the staging contract:
@@ -83,7 +82,7 @@ by the browser. No wildcard CORS configuration was introduced.
 | `curl -I <public-staging-url>` | PASS — HTTP 200 without Vercel login |
 | Browser navigation and hard refresh of public staging URL | PASS — application renders |
 | Anonymous Cloud Run `/health/ready` | PASS — HTTP 403, remains private |
-| Same-origin `/api/health/live` | BLOCKED — HTTP 503 until WIF identifiers are configured |
+| Same-origin `/api/health/live` | BLOCKED — HTTP 502; Google STS rejects the token on the provider attribute condition |
 | `npm run lint` | PASS |
 | `npm run typecheck` | PASS |
 | `npm run build` | PASS — dynamic `/api/[...path]` route emitted |
@@ -102,26 +101,29 @@ It cannot substitute for the remaining real private-backend acceptance test.
 
 ## Remaining IAM blocker and exact follow-up
 
-Workflow run `30512714427` successfully authenticated the existing GitHub staging
-deployer and ran the non-deploy safety validation. Its WIF job then stopped at the
-first intended write with:
+The initial GitHub bootstrap identity remains intentionally under-privileged for
+WIF administration. Separately, the real Vercel OIDC token was decoded only into
+non-secret claim metadata and proved the active subject is:
 
 ```text
-PERMISSION_DENIED: iam.workloadIdentityPools.create
+owner:ascs-projects-740622ac:project:company-intelligence-graphrag-staging:environment:production
 ```
 
-This confirms the current deployer does not have federation-administration access;
-it did not change WIF, Cloud Run IAM, or Cloud Run deployment state. A GCP IAM
-administrator must either run `scripts/configure_vercel_wif.sh` with the required
-environment variables or grant the bootstrap identity only the temporary ability to:
+The original bootstrap script incorrectly used the Vercel team ID rather than the
+team slug in that `owner:` field. Google STS therefore returned `400` with “The
+given credential is rejected by the attribute condition.” The corrected
+`scripts/configure_vercel_wif.sh` now updates an existing provider, grants the
+correct impersonation subject, and removes the obsolete binding.
+
+A GCP IAM administrator must run the corrected script once. It changes only the
+named WIF provider and its dedicated service-account binding; it does not make Cloud
+Run public or create a key. The following are then re-verified automatically:
 
 1. create/manage the named WIF pool and provider;
 2. create the dedicated invoker service account and its WIF impersonation binding;
 3. set `roles/run.invoker` on only `company-graphrag-staging` in `europe-west1`.
 
-After that approval, rerun `Deploy Cloud Run Staging` on this branch with
-`execute=false` and `configure_vercel_wif=true`, configure the four resulting
-server-only identifiers in Vercel, redeploy, and run the real (unmocked) acceptance
+After that update, redeploy Vercel and run the real (unmocked) acceptance
 cases: health, research HTTP 200 / progressive NDJSON, citation and PDF routes,
 graph context, cancellation, safety and insufficient-evidence states, console audit,
 and staging telemetry trace. Until then those real-backend checks are intentionally
