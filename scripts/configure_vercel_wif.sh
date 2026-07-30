@@ -18,6 +18,7 @@ PROJECT_NUMBER="$(gcloud projects describe "$GCP_PROJECT_ID" --format='value(pro
 SERVICE_ACCOUNT_EMAIL="${SERVICE_ACCOUNT_ID}@${GCP_PROJECT_ID}.iam.gserviceaccount.com"
 SUBJECT="owner:${VERCEL_TEAM_SLUG}:project:${VERCEL_PROJECT_ID}:environment:production"
 LEGACY_SUBJECT="owner:${VERCEL_TEAM_ID}:project:${VERCEL_PROJECT_ID}:environment:production"
+ATTRIBUTE_CONDITION="assertion.sub == '${SUBJECT}'"
 POOL_RESOURCE="projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/${POOL_ID}"
 
 if ! gcloud iam workload-identity-pools describe "$POOL_ID" --project "$GCP_PROJECT_ID" --location global >/dev/null 2>&1; then
@@ -36,7 +37,7 @@ if ! gcloud iam workload-identity-pools providers describe "$PROVIDER_ID" --proj
     --issuer-uri "$VERCEL_ISSUER" \
     --allowed-audiences "$VERCEL_AUDIENCE" \
     --attribute-mapping "google.subject=assertion.sub" \
-    --attribute-condition "assertion.sub == '$SUBJECT' && assertion.owner_id == '$VERCEL_TEAM_ID' && assertion.project_id == '$VERCEL_PROJECT_ID' && assertion.environment == 'production' && assertion.aud == '$VERCEL_AUDIENCE'"
+    --attribute-condition "$ATTRIBUTE_CONDITION"
 else
   gcloud iam workload-identity-pools providers update-oidc "$PROVIDER_ID" \
     --project "$GCP_PROJECT_ID" \
@@ -44,7 +45,7 @@ else
     --workload-identity-pool "$POOL_ID" \
     --allowed-audiences "$VERCEL_AUDIENCE" \
     --attribute-mapping "google.subject=assertion.sub" \
-    --attribute-condition "assertion.sub == '$SUBJECT' && assertion.owner_id == '$VERCEL_TEAM_ID' && assertion.project_id == '$VERCEL_PROJECT_ID' && assertion.environment == 'production' && assertion.aud == '$VERCEL_AUDIENCE'"
+    --attribute-condition "$ATTRIBUTE_CONDITION"
 fi
 
 if ! gcloud iam service-accounts describe "$SERVICE_ACCOUNT_EMAIL" --project "$GCP_PROJECT_ID" >/dev/null 2>&1; then
