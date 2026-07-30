@@ -10,6 +10,7 @@
 | Vercel project | `ascs-projects-740622ac/company-intelligence-graphrag-staging` |
 | Framework / root | Next.js / `frontend` |
 | Deployment target | Vercel Production (the dedicated project is the staging environment) |
+| Branch / commit | `codex/vercel-staging-frontend` / `7a19e49` |
 
 `NEXT_PUBLIC_API_BASE_URL` is configured in the Vercel project for Preview and
 Production. Its value is the Cloud Run URL above. It is a public service URL only;
