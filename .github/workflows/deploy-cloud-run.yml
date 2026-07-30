@@ -12,12 +12,38 @@ on:
         required: true
         default: false
         type: boolean
+      configure_vercel_wif:
+        description: Configure Vercel OIDC federation and the staging-only Cloud Run invoker
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: read
   id-token: write
 
 jobs:
+  vercel-wif:
+    if: inputs.configure_vercel_wif
+    runs-on: ubuntu-latest
+    environment: staging
+    outputs:
+      project_number: ${{ steps.wif.outputs.project_number }}
+      service_account_email: ${{ steps.wif.outputs.service_account_email }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed # v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@e427ad8a34f8676edf47cf7d7925499adf3eb74f # v2
+      - id: wif
+        env:
+          GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+          GCP_REGION: ${{ vars.GCP_REGION }}
+          CLOUD_RUN_SERVICE: ${{ vars.CLOUD_RUN_SERVICE }}
+        run: ./scripts/configure_vercel_wif.sh
+
   staging:
     runs-on: ubuntu-latest
     environment: staging
