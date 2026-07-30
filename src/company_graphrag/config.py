@@ -50,6 +50,12 @@ class Settings(BaseSettings):
     neo4j_password: str = Field(default="password", description="Neo4j password")
     neo4j_database: str = Field(default="neo4j", description="Neo4j database name")
     neo4j_use_cloud: bool = Field(default=False, description="Enable cloud Neo4j Aura mode")
+    compose_neo4j_username: str = Field(
+        default="", description="Optional local Compose Neo4j username used only for alignment validation"
+    )
+    compose_neo4j_password: str = Field(
+        default="", description="Optional local Compose Neo4j password used only for alignment validation"
+    )
 
     # LLM & RAG Settings
     llm_provider: str = Field(default="mock", description="LLM provider name (mock, gemini, openai, ollama)")
@@ -144,6 +150,21 @@ class Settings(BaseSettings):
         if self.neo4j_http_url:
             return self.neo4j_http_url.rstrip("/")
         return "http://localhost:7474"
+
+    def validate_local_neo4j_credential_alignment(self) -> None:
+        """Fail fast when local host and Compose Neo4j credentials would diverge.
+
+        Cloud deployments intentionally do not use Compose aliases. Password values are
+        never included in the error message.
+        """
+        if self.neo4j_use_cloud or not self.neo4j_uri.startswith(("bolt://localhost", "bolt://127.0.0.1")):
+            return
+        compose_username = self.compose_neo4j_username or self.neo4j_username
+        compose_password = self.compose_neo4j_password or self.neo4j_password
+        if compose_username != self.neo4j_username or compose_password != self.neo4j_password:
+            raise ValueError(
+                "Local Neo4j credentials are misaligned: NEO4J_* and COMPOSE_NEO4J_* must resolve to the same values."
+            )
 
 
 @lru_cache

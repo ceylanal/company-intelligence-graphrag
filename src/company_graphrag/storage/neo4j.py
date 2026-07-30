@@ -143,12 +143,14 @@ class Neo4jGraphStore:
         password: str | None = None,
         database: str | None = None,
         mock_mode: bool = False,
+        allow_fallback: bool = True,
     ) -> None:
         self.uri = uri or settings.neo4j_uri
         self.user = user or settings.neo4j_username
         self.password = password if password is not None else settings.neo4j_password
         self.database = database or settings.neo4j_database
         self.mock_mode = mock_mode
+        self.allow_fallback = allow_fallback
         self._driver: Driver | None = None
         self._mock_store: MockNeo4jStore | None = None
 
@@ -161,6 +163,10 @@ class Neo4jGraphStore:
                     self._driver = drv
                     logger.info("Connected to live cloud Neo4j database", uri=self.uri)
                 except Exception as err:
+                    if not self.allow_fallback:
+                        raise ConnectionError(
+                            "Cloud Neo4j connectivity failed while fallback is disabled."
+                        ) from err
                     logger.warning(
                         "Cloud Neo4j connection failed, falling back to mock graph storage",
                         uri=self.uri,
@@ -187,6 +193,10 @@ class Neo4jGraphStore:
                         self._driver = drv
                         logger.info("Connected to live Neo4j database", uri=self.uri)
                     except Exception as err:
+                        if not self.allow_fallback:
+                            raise ConnectionError(
+                                "Neo4j connectivity failed while fallback is disabled."
+                            ) from err
                         logger.warning(
                             "Neo4j connection failed, falling back to mock graph storage",
                             uri=self.uri,
@@ -195,6 +205,8 @@ class Neo4jGraphStore:
                         self.mock_mode = True
                         self._mock_store = MockNeo4jStore()
                 else:
+                    if not self.allow_fallback:
+                        raise ConnectionError("Neo4j is unavailable while fallback is disabled.")
                     logger.warning(
                         "Neo4j connection unavailable, using mock graph storage fallback",
                         uri=self.uri,
