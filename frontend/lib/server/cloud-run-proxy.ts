@@ -49,6 +49,12 @@ type ProxyConfig = {
 type TokenExchange = { access_token?: string };
 type IdTokenResponse = { token?: string };
 
+class ProxyFailure extends Error {
+  constructor(readonly stage: "sts" | "iamcredentials" | "upstream", readonly status?: number) {
+    super(stage);
+  }
+}
+
 function config(): ProxyConfig {
   const values = {
     backendUrl: process.env.CLOUD_RUN_STAGING_URL?.replace(/\/$/, "") ?? "",
@@ -81,9 +87,9 @@ async function googleIdToken(oidcToken: string, proxyConfig: ProxyConfig, signal
     }),
     signal,
   });
-  if (!exchange.ok) throw new Error("Workload identity token exchange failed.");
+  if (!exchange.ok) throw new ProxyFailure("sts", exchange.status);
   const accessToken = (await exchange.json() as TokenExchange).access_token;
-  if (!accessToken) throw new Error("Workload identity exchange returned no access token.");
+  if (!accessToken) throw new ProxyFailure("sts");
 
   const idToken = await fetch(
     `https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${encodeURIComponent(proxyConfig.serviceAccountEmail)}:generateIdToken`,
@@ -97,9 +103,9 @@ async function googleIdToken(oidcToken: string, proxyConfig: ProxyConfig, signal
       signal,
     },
   );
-  if (!idToken.ok) throw new Error("Cloud Run identity token generation failed.");
+  if (!idToken.ok) throw new ProxyFailure("iamcredentials", idToken.status);
   const token = (await idToken.json() as IdTokenResponse).token;
-  if (!token) throw new Error("Cloud Run identity token response was empty.");
+  if (!token) throw new ProxyFailure("iamcredentials");
   return token;
 }
 
@@ -166,7 +172,14 @@ export async function proxyCloudRunRequest(request: Request, path: string[]): Pr
       statusText: upstream.statusText,
       headers: forwardResponseHeaders(upstream),
     });
-  } catch {
+  } catch (error) {
+    if (error instanceof ProxyFailure) {
+      console.error("Cloud Run proxy authentication failed", { stage: error.stage, status: error.status });
+    } else if (error instanceof DOMException && error.name === "AbortError") {
+      console.error("Cloud Run proxy request aborted");
+    } else {
+      console.error("Cloud Run proxy request failed");
+    }
     return Response.json({ detail: "The private research service is unavailable." }, { status: 502 });
   } finally {
     clearTimeout(timer);
