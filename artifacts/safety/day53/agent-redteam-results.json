@@ -1,0 +1,80 @@
+{
+  "schema_version": "1.0",
+  "total_cases": 14,
+  "attack_cases": 12,
+  "blocked_attacks": 12,
+  "attack_bypass_rate": 0.0,
+  "false_positive_rate": 0.0,
+  "case_results": [
+    {
+      "id": "ta-01",
+      "expected_action": "block",
+      "observed_action": "block"
+    },
+    {
+      "id": "ta-02",
+      "expected_action": "block",
+      "observed_action": "block"
+    },
+    {
+      "id": "ta-03",
+      "expected_action": "block",
+      "observed_action": "block"
+    },
+    {
+      "id": "ta-04",
+      "expected_action": "block",
+      "observed_action": "block"
+    },
+    {
+      "id": "ta-05",
+      "expected_action": "block",
+      "observed_action": "block"
+    },
+    {
+      "id": "ta-06",
+      "expected_action": "block",
+      "observed_action": "block"
+    },
+    {
+      "id": "ta-07",
+      "expected_action": "block",
+      "observed_action": "block"
+    },
+    {
+      "id": "ta-08",
+      "expected_action": "block",
+      "observed_action": "block"
+    },
+    {
+      "id": "ta-09",
+      "expected_action": "block",
+      "observed_action": "block"
+    },
+    {
+      "id": "ta-10",
+      "expected_action": "block",
+      "observed_action": "block"
+    },
+    {
+      "id": "ta-11",
+      "expected_action": "block",
+      "observed_action": "block"
+    },
+    {
+      "id": "ta-12",
+      "expected_action": "block",
+      "observed_action": "block"
+    },
+    {
+      "id": "ta-13",
+      "expected_action": "allow",
+      "observed_action": "allow"
+    },
+    {
+      "id": "ta-14",
+      "expected_action": "allow",
+      "observed_action": "allow"
+    }
+  ]
+}

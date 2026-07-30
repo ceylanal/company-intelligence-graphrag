@@ -12,6 +12,8 @@ from company_graphrag.rag.models import ContextPackage, RAGAnswer
 from company_graphrag.rag.prompts import GROUNDED_RAG_SYSTEM_PROMPT, GROUNDED_RAG_USER_PROMPT_TEMPLATE
 from company_graphrag.retrieval.models import SearchQuery
 from company_graphrag.retrieval.vector_retriever import VectorRetriever
+from company_graphrag.safety.input_guardrails import InputGuardrails
+from company_graphrag.safety.output_guardrails import OutputGuardrails
 
 logger = structlog.get_logger(__name__)
 
@@ -133,6 +135,38 @@ class RAGGenerator:
         else:
             q_str = str(query)
 
+        raw_filters = {
+            key: value
+            for key, value in {
+                "ticker": ticker,
+                "year": year,
+                "company": company,
+                "report_type": report_type,
+            }.items()
+            if value is not None
+        }
+        input_result = InputGuardrails().evaluate(q_str, filters=raw_filters or None)
+        if input_result.blocked:
+            return RAGAnswer(
+                query="",
+                answer="Mevcut kaynaklarda bu soruyu yanıtlamak için yeterli bilgi bulunamadı.",
+                citations=[],
+                sources=[],
+                used_source_count=0,
+                insufficient_context=True,
+                execution_time_ms=round((time.time() - start_time) * 1000, 2),
+                llm_provider=self.llm_provider,
+                llm_model=self.llm_model,
+                fallback_used=True,
+                fallback_reason="input_guardrail_block",
+            )
+        q_str = input_result.question
+        if input_result.filters is not None:
+            ticker = input_result.filters.ticker if isinstance(input_result.filters.ticker, str) else ticker
+            year = input_result.filters.year if isinstance(input_result.filters.year, int) else year
+            company = input_result.filters.company
+            report_type = input_result.filters.report_type
+
         # Step 1: Retrieve search hits
         search_hits = self.retriever.retrieve(
             query=q_str,
@@ -193,7 +227,13 @@ class RAGGenerator:
 
         # Step 4: Extract and validate citations
         valid_source_nums = {s.source_number for s in context_pkg.sources}
-        citations = extract_citations(answer_text, valid_source_nums)
+        output_result = OutputGuardrails().evaluate(
+            answer_text,
+            valid_citations=valid_source_nums,
+            retrieved_context=[source.text for source in context_pkg.sources],
+        )
+        answer_text = output_result.text
+        citations = output_result.citations
 
         # Filter sources to only cited ones (or return all included sources if no citations found)
         if citations:
@@ -208,7 +248,7 @@ class RAGGenerator:
             citations=citations,
             sources=cited_sources,
             used_source_count=len(cited_sources),
-            insufficient_context=is_insufficient,
+            insufficient_context=is_insufficient or output_result.blocked,
             execution_time_ms=exec_time,
             llm_provider=self.llm_provider,
             llm_model=self.llm_model,

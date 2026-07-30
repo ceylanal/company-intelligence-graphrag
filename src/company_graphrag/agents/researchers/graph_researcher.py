@@ -7,6 +7,7 @@ from company_graphrag.agents.researchers.models import ResearcherExecutionResult
 from company_graphrag.agents.schema import EvidenceItem, ResearchState, ResearchTaskStep, ToolCallRecord
 from company_graphrag.agents.tools.models import GraphSearchInput
 from company_graphrag.agents.tools.search_tools import GraphSearchTool, InspectCompanyTool
+from company_graphrag.safety.tool_policy import ToolExecutionContext, ToolPolicy
 
 
 class GraphResearcherAgent:
@@ -21,6 +22,7 @@ class GraphResearcherAgent:
     ):
         self._graph_tool = graph_search_tool or GraphSearchTool()
         self._inspect_tool = inspect_company_tool or InspectCompanyTool()
+        self._tool_policy = ToolPolicy()
 
     def execute_task(self, step: ResearchTaskStep, state: ResearchState) -> ResearcherExecutionResult:
         """Execute multi-hop graph search task step and add deduplicated evidence to shared state."""
@@ -33,6 +35,7 @@ class GraphResearcherAgent:
 
         entities = step.required_entities or {}
         ticker = entities.get("ticker")
+        company = entities.get("company")
         year = entities.get("year")
 
         primary_query = step.question
@@ -46,7 +49,12 @@ class GraphResearcherAgent:
             limit=10,
             raw_query=primary_query,
         )
-        res = self._graph_tool.run(g_input)
+        context = ToolExecutionContext(
+            agent_role=self.role.value,
+            allowed_tickers=frozenset({str(ticker).upper()}) if ticker else frozenset(),
+            allowed_companies=frozenset({str(company)}) if company else frozenset(),
+        )
+        res = self._graph_tool.run(g_input, policy_context=context)
 
         state.tool_calls.append(
             ToolCallRecord(
@@ -62,7 +70,7 @@ class GraphResearcherAgent:
         state.execution_budget.record_search_call()
 
         if res.success and res.data and res.data.hits:
-            gathered_evidence.extend(res.data.hits)
+            gathered_evidence.extend(item for item in res.data.hits if self._tool_policy.validate_tool_output(item.content))
         else:
             failed_attempts += 1
             warnings.append(f"GraphResearcher: Query '{primary_query}' returned 0 paths or failed.")

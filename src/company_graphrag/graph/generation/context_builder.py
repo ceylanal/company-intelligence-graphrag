@@ -4,6 +4,7 @@ from structlog import get_logger
 
 from company_graphrag.graph.generation.models import GraphCitation
 from company_graphrag.retrieval.hybrid import HybridSearchResponse
+from company_graphrag.safety.context_isolation import UNTRUSTED_CONTEXT_PREAMBLE, ContextIsolator
 
 logger = get_logger(__name__)
 
@@ -23,8 +24,11 @@ class GraphRAGContextBuilder:
 
         total_chars = 0
 
-        for idx, item in enumerate(hybrid_response.results, start=1):
+        safe_items = [item for item in hybrid_response.results if not self._isolator.isolate_text(item.text).suspicious]
+        for idx, item in enumerate(safe_items, start=1):
             source_tag = item.source_retriever.upper()
+            sanitized_text = item.text
+            sanitized_evidence = item.evidence_text or sanitized_text
 
             # Record graph path summary if item originated from graph or fused search
             if item.graph_path_summary:
@@ -40,7 +44,7 @@ class GraphRAGContextBuilder:
                 source_file=item.source_file or "source_unknown.pdf",
                 page_number=item.page_number or 1,
                 chunk_id=item.chunk_id or item.id,
-                evidence_snippet=item.evidence_text or item.text[:200],
+                evidence_snippet=sanitized_evidence[:200],
             )
             citations.append(citation)
 
@@ -52,9 +56,9 @@ class GraphRAGContextBuilder:
             )
 
             if item.graph_path_summary:
-                block_body = f"Graph Traversal Path: {item.graph_path_summary}\nEvidence Text: {item.text}\n"
+                block_body = f"Graph Traversal Path: {item.graph_path_summary}\n{UNTRUSTED_CONTEXT_PREAMBLE}Evidence Text: {sanitized_text}\n"
             else:
-                block_body = f"Content Snippet: {item.text}\n"
+                block_body = f"{UNTRUSTED_CONTEXT_PREAMBLE}Content Snippet: {sanitized_text}\n"
 
             block_text = block_header + block_body + "\n"
 
@@ -77,3 +81,5 @@ class GraphRAGContextBuilder:
             total_chars=total_chars,
         )
         return context_str, citations, graph_relationships
+    def __init__(self, isolator: ContextIsolator | None = None) -> None:
+        self._isolator = isolator or ContextIsolator()

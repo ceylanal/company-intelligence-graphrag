@@ -6,6 +6,7 @@ import structlog
 
 from company_graphrag.rag.models import ContextPackage, SourceReference
 from company_graphrag.retrieval.models import SearchHit, SearchResponse
+from company_graphrag.safety.context_isolation import UNTRUSTED_CONTEXT_PREAMBLE, ContextIsolator
 
 logger = structlog.get_logger(__name__)
 
@@ -35,6 +36,7 @@ class ContextBuilder:
         self.default_max_chars = default_max_chars
         self.default_max_chunk_chars = default_max_chunk_chars
         self.deduplicate_threshold = deduplicate_threshold
+        self._isolator = ContextIsolator()
 
     def build_context(
         self,
@@ -55,6 +57,8 @@ class ContextBuilder:
             hit_list = list(hits)
             q_str = query
 
+        isolation = self._isolator.isolate(hit_list)
+        hit_list = isolation.accepted
         if not hit_list:
             no_src_text = "[NO RELEVANT SOURCES FOUND]"
             return ContextPackage(
@@ -62,7 +66,7 @@ class ContextBuilder:
                 formatted_context=no_src_text,
                 total_sources=0,
                 total_characters=len(no_src_text),
-                excluded_duplicates=0,
+                excluded_duplicates=isolation.excluded_count,
                 sources=[],
             )
 
@@ -109,7 +113,7 @@ class ContextBuilder:
                 f"Type: {hit.report_type} | Page: {hit.page_number} | "
                 f"File: {hit.source_file} (Chunk ID: {hit.chunk_id})"
             )
-            block_text = f"{header}\n{meta_line}\nText:\n{truncated}\n"
+            block_text = f"{header}\n{meta_line}\n{UNTRUSTED_CONTEXT_PREAMBLE}Text:\n{truncated}\n"
 
             # Check Character Budget Limit
             projected_chars = current_char_count + len(block_text) + (2 if formatted_blocks else 0)
@@ -149,6 +153,6 @@ class ContextBuilder:
             formatted_context=final_formatted_context,
             total_sources=len(valid_sources),
             total_characters=len(final_formatted_context),
-            excluded_duplicates=excluded_duplicates_count,
+            excluded_duplicates=excluded_duplicates_count + isolation.excluded_count,
             sources=valid_sources,
         )

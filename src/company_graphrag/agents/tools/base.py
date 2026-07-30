@@ -8,6 +8,7 @@ from typing import Any, TypeVar
 from pydantic import BaseModel, Field
 
 from company_graphrag.agents.schema import EvidenceItem
+from company_graphrag.safety.tool_policy import ToolExecutionContext, ToolPolicy, ToolPolicyError
 
 T = TypeVar("T")
 
@@ -21,6 +22,7 @@ class ToolErrorCode(StrEnum):
     TIMEOUT = "TIMEOUT"
     BACKEND_ERROR = "BACKEND_ERROR"
     MAX_RESULTS_EXCEEDED = "MAX_RESULTS_EXCEEDED"
+    POLICY_VIOLATION = "POLICY_VIOLATION"
 
 
 class ToolResult[T](BaseModel):
@@ -54,20 +56,41 @@ class BaseTool[T](ABC):
     description: str
     timeout_seconds: float = 5.0
     max_retries: int = 2
+    input_model: type[BaseModel] | None = None
 
     @abstractmethod
     def _run(self, input_payload: Any) -> T:
         """Internal execution logic to be implemented by specific tools."""
         pass
 
-    def run(self, input_payload: Any) -> ToolResult[T]:
+    def run(self, input_payload: Any, *, policy_context: ToolExecutionContext | None = None) -> ToolResult[T]:
         """Safely execute tool with timing, error handling, and deterministic output formatting."""
         start_time = time.perf_counter()
         retries = 0
 
+        try:
+            validated_payload = ToolPolicy().validate_call(self.name, input_payload, context=policy_context)
+        except ToolPolicyError as exc:
+            elapsed_ms = (time.perf_counter() - start_time) * 1000.0
+            return ToolResult(
+                tool_name=self.name,
+                success=False,
+                error_code=(
+                    ToolErrorCode.READ_ONLY_VIOLATION
+                    if "READ_ONLY_VIOLATION" in str(exc)
+                    else ToolErrorCode.POLICY_VIOLATION
+                ),
+                error_message=(
+                    "READ_ONLY_VIOLATION: Tool call violates the read-only policy."
+                    if "READ_ONLY_VIOLATION" in str(exc)
+                    else "Tool call denied by safety policy."
+                ),
+                execution_time_ms=round(elapsed_ms, 2),
+            )
+
         while True:
             try:
-                result_data = self._run(input_payload)
+                result_data = self._run(validated_payload)
                 elapsed_ms = (time.perf_counter() - start_time) * 1000.0
 
                 record_count = 0

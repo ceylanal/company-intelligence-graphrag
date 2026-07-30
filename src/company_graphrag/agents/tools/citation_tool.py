@@ -11,6 +11,7 @@ class ValidateCitationTool(BaseTool[ValidateCitationOutput]):
 
     name = "validate_citation"
     description = "Validates that a cited statement is grounded in available evidence chunks."
+    input_model = ValidateCitationInput
 
     def _run(self, input_payload: ValidateCitationInput | dict[str, Any]) -> ValidateCitationOutput:
         if isinstance(input_payload, dict):

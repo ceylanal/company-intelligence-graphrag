@@ -79,6 +79,8 @@ def span(name: str, **attributes: Any) -> Iterator[Any]:
         try:
             yield current
         except Exception as exc:
-            current.record_exception(exc)
+            # Exception messages and stack locals can contain credentials, provider
+            # responses, or source text.  Record only the class in span status; the
+            # request path returns a separately sanitized public error.
             current.set_status(trace.Status(trace.StatusCode.ERROR, type(exc).__name__))
             raise

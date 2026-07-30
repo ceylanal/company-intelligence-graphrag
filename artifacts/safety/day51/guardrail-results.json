@@ -1,0 +1,112 @@
+{
+  "task": "Day 51: Input and Output Safety Guardrails",
+  "generated_at": "2026-07-30T04:53:08+03:00",
+  "status": "passed",
+  "decision_model": [
+    "allow",
+    "warn",
+    "redact",
+    "block"
+  ],
+  "security_scenarios": [
+    {
+      "name": "normal_company_question",
+      "expected": "allow",
+      "observed": "allow",
+      "passed": true,
+      "test": "tests/safety/test_input_guardrails.py::test_normal_company_question_passes"
+    },
+    {
+      "name": "oversized_question",
+      "expected": "block",
+      "observed": "block:question_too_long",
+      "passed": true,
+      "test": "tests/safety/test_input_guardrails.py::test_too_long_input_is_rejected"
+    },
+    {
+      "name": "prompt_injection",
+      "expected": "block",
+      "observed": "block:prompt_injection",
+      "passed": true,
+      "test": "tests/safety/test_input_guardrails.py::test_prompt_injection_is_detected"
+    },
+    {
+      "name": "fake_api_key",
+      "expected": "redact",
+      "observed": "redact:secret_redacted",
+      "passed": true,
+      "test": "tests/safety/test_output_guardrails.py::test_fake_api_key_is_redacted"
+    },
+    {
+      "name": "uncited_financial_claim",
+      "expected": "block",
+      "observed": "block:uncited_financial_claim",
+      "passed": true,
+      "test": "tests/safety/test_output_guardrails.py::test_uncited_financial_claim_is_blocked"
+    },
+    {
+      "name": "valid_citation",
+      "expected": "allow_unchanged",
+      "observed": "allow_unchanged",
+      "passed": true,
+      "test": "tests/safety/test_output_guardrails.py::test_valid_citation_answer_is_not_modified"
+    },
+    {
+      "name": "outside_retrieved_context",
+      "expected": "warn",
+      "observed": "warn:outside_retrieved_context",
+      "passed": true,
+      "test": "tests/safety/test_output_guardrails.py::test_claim_outside_context_is_warned"
+    }
+  ],
+  "verification": {
+    "guardrail_tests": {
+      "command": "uv run pytest tests/safety -q",
+      "result": "passed",
+      "passed": 17,
+      "failed": 0
+    },
+    "full_test_suite": {
+      "command": "uv run pytest",
+      "result": "passed",
+      "passed": 319,
+      "failed": 0,
+      "warnings": 7,
+      "duration_seconds": 29.58
+    },
+    "ruff": {
+      "command": "uv run ruff check .",
+      "result": "passed",
+      "message": "All checks passed!"
+    },
+    "mypy": {
+      "command": "uv run mypy src",
+      "result": "passed",
+      "files_checked": 123,
+      "issues": 0
+    }
+  },
+  "negative_evidence": {
+    "blocked_cases": [
+      "oversized question",
+      "excessive repetition/token flooding",
+      "explicit prompt injection",
+      "invalid history role or filter schema",
+      "unsupported content/file type",
+      "system prompt/internal configuration leak",
+      "uncited definitive financial claim"
+    ],
+    "redacted_cases": [
+      "null byte and unsafe control characters",
+      "API keys/tokens/passwords/connection strings/private keys",
+      "citation numbers absent from retrieved context"
+    ]
+  },
+  "failures": [],
+  "non_blocking_warnings": [
+    "The full pytest run emitted third-party SWIG deprecation warnings.",
+    "FastAPI TestClient emitted a Starlette httpx deprecation warning.",
+    "The local Qdrant test store emitted a large-local-collection warning.",
+    "A deliberately unreachable telemetry exporter retried and timed out after tests; pytest still exited 0."
+  ]
+}

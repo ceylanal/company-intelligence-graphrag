@@ -9,6 +9,7 @@ from company_graphrag.agents.researchers.models import ResearcherExecutionResult
 from company_graphrag.agents.schema import EvidenceItem, ResearchState, ResearchTaskStep, ToolCallRecord
 from company_graphrag.agents.tools.models import VectorSearchInput
 from company_graphrag.agents.tools.search_tools import FetchSourceContextTool, VectorSearchTool
+from company_graphrag.safety.tool_policy import ToolExecutionContext, ToolPolicy
 
 
 def build_intent_expansion(query: str, ticker: str | None, company: str | None) -> str | None:
@@ -68,6 +69,7 @@ class VectorResearcherAgent:
     ):
         self._vector_tool = vector_search_tool or VectorSearchTool()
         self._context_tool = fetch_context_tool or FetchSourceContextTool()
+        self._tool_policy = ToolPolicy()
 
     def execute_task(self, step: ResearchTaskStep, state: ResearchState) -> ResearcherExecutionResult:
         """Execute vector search task step and add deduplicated evidence to shared state."""
@@ -99,7 +101,12 @@ class VectorResearcherAgent:
             year=year,
             report_type=report_type,
         )
-        res = self._vector_tool.run(v_input)
+        context = ToolExecutionContext(
+            agent_role=self.role.value,
+            allowed_tickers=frozenset({str(ticker).upper()}) if ticker else frozenset(),
+            allowed_companies=frozenset({str(company)}) if company else frozenset(),
+        )
+        res = self._vector_tool.run(v_input, policy_context=context)
 
         # Audit log tool call
         state.tool_calls.append(
@@ -116,7 +123,7 @@ class VectorResearcherAgent:
         state.execution_budget.record_search_call()
 
         if res.success and res.data and res.data.hits:
-            gathered_evidence.extend(res.data.hits)
+            gathered_evidence.extend(item for item in res.data.hits if self._tool_policy.validate_tool_output(item.content))
         else:
             failed_attempts += 1
             warnings.append(f"VectorResearcher: Primary query '{primary_query}' returned 0 hits or failed.")
@@ -137,7 +144,7 @@ class VectorResearcherAgent:
                 year=year,
                 report_type=report_type,
             )
-            res_alt = self._vector_tool.run(v_input_alt)
+            res_alt = self._vector_tool.run(v_input_alt, policy_context=context)
 
             state.tool_calls.append(
                 ToolCallRecord(
@@ -153,7 +160,9 @@ class VectorResearcherAgent:
             state.execution_budget.record_search_call()
 
             if res_alt.success and res_alt.data and res_alt.data.hits:
-                gathered_evidence.extend(res_alt.data.hits)
+                gathered_evidence.extend(
+                    item for item in res_alt.data.hits if self._tool_policy.validate_tool_output(item.content)
+                )
             else:
                 failed_attempts += 1
                 warnings.append(f"VectorResearcher: Alternative query '{alt_query}' returned 0 hits.")

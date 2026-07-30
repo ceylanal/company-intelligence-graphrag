@@ -46,6 +46,7 @@ jobs:
             --ignore=tests/test_data_lineage.py \
             --ignore=tests/test_rag_generator.py \
             --ignore=tests/test_rag_pipeline.py
+          uv run python scripts/run_safety_eval.py
           uv run company-graphrag version-check
       - run: uv run company-graphrag eval-final-run
       - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3

@@ -15,6 +15,7 @@ from company_graphrag.agents.workflow.checkpoint import JSONCheckpointSaver
 from company_graphrag.agents.writer import ReportWriterAgent
 from company_graphrag.config import settings
 from company_graphrag.observability.tracing import span
+from company_graphrag.safety.agent_limits import AgentLimitError, AgentLimits
 from company_graphrag.versioning.manifest import build_run_manifest, save_run_manifest
 
 
@@ -69,9 +70,15 @@ class ResearchWorkflow:
         self.graph_researcher = graph_researcher or GraphResearcherAgent()
         self.verifier = verifier or EvidenceVerifierAgent()
         self.writer = writer or ReportWriterAgent()
+        self.agent_limits = AgentLimits(
+            max_tool_calls=10,
+            max_agent_steps=15,
+            max_duration_seconds=settings.research_max_duration_seconds,
+        )
 
     def run(self, user_query: str, run_id: str | None = None) -> ResearchState:
         """Start a new durable research workflow execution for user_query."""
+        self.agent_limits.restart_timer()
         if run_id:
             try:
                 existing = self.saver.load_checkpoint(run_id)
@@ -100,6 +107,7 @@ class ResearchWorkflow:
 
     def resume(self, run_id: str) -> ResearchState:
         """Resume an interrupted or paused workflow execution from last saved checkpoint."""
+        self.agent_limits.restart_timer()
         state = self.saver.load_checkpoint(run_id)
         state.evidence = EvidenceDeduplicator.deduplicate(state.evidence)
 
@@ -212,6 +220,17 @@ class ResearchWorkflow:
                         if task_step.task_id in state.completed_tasks:
                             continue
 
+                        try:
+                            self.agent_limits.record_agent_step(state)
+                            self.agent_limits.check(state)
+                        except AgentLimitError as exc:
+                            state.status = AgentWorkflowStatus.FAILED
+                            state.current_stage = WorkflowStage.FAILED.value
+                            state.error = "Agent safety limit reached."
+                            state.warnings.append(f"Agent safety limit: {type(exc).__name__}")
+                            self.saver.save_checkpoint(state)
+                            return state
+
                         # Execute with appropriate researcher
                         if "graph_search" in task_step.required_tools:
                             with span("graph_retrieval", **{"run.id": state.run_id}):
@@ -221,6 +240,15 @@ class ResearchWorkflow:
                                 self.vector_researcher.execute_task(task_step, state)
 
                         state.completed_tasks.append(task_step.task_id)
+                        try:
+                            self.agent_limits.check(state)
+                        except AgentLimitError as exc:
+                            state.status = AgentWorkflowStatus.FAILED
+                            state.current_stage = WorkflowStage.FAILED.value
+                            state.error = "Agent safety limit reached."
+                            state.warnings.append(f"Agent safety limit: {type(exc).__name__}")
+                            self.saver.save_checkpoint(state)
+                            return state
 
             elif st == WorkflowStage.EVIDENCE_MERGE:
                 # Deduplicate evidence to prevent duplicate items upon resume/retry

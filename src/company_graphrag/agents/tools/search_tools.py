@@ -29,6 +29,7 @@ class VectorSearchTool(BaseTool[VectorSearchOutput]):
 
     name = "vector_search"
     description = "Executes dense semantic vector search over company annual reports."
+    input_model = VectorSearchInput
 
     def __init__(self, qdrant_adapter: QdrantToolAdapter | None = None):
         self._adapter = qdrant_adapter or QdrantToolAdapter()
@@ -65,6 +66,7 @@ class GraphSearchTool(BaseTool[GraphSearchOutput]):
 
     name = "graph_search"
     description = "Traverses knowledge graph for multi-hop entity relationships and lineage."
+    input_model = GraphSearchInput
 
     def __init__(self, neo4j_adapter: Neo4jToolAdapter | None = None):
         self._adapter = neo4j_adapter or Neo4jToolAdapter()
@@ -101,6 +103,7 @@ class HybridSearchTool(BaseTool[HybridSearchOutput]):
 
     name = "hybrid_search"
     description = "Executes hybrid vector + graph search with reciprocal rank score fusion."
+    input_model = HybridSearchInput
 
     def __init__(
         self,
@@ -161,6 +164,7 @@ class FetchChunkTool(BaseTool[FetchChunkOutput]):
 
     name = "fetch_chunk"
     description = "Fetches specific chunk by chunk ID."
+    input_model = FetchChunkInput
 
     def __init__(self, qdrant_adapter: QdrantToolAdapter | None = None):
         self._adapter = qdrant_adapter or QdrantToolAdapter()
@@ -185,6 +189,7 @@ class FetchSourceContextTool(BaseTool[FetchSourceContextOutput]):
 
     name = "fetch_source_context"
     description = "Fetches surrounding context window chunks for a target chunk."
+    input_model = FetchSourceContextInput
 
     def __init__(self, qdrant_adapter: QdrantToolAdapter | None = None):
         self._adapter = qdrant_adapter or QdrantToolAdapter()
@@ -216,6 +221,7 @@ class InspectCompanyTool(BaseTool[InspectCompanyOutput]):
 
     name = "inspect_company"
     description = "Inspects company metadata, available report years, and graph structure."
+    input_model = InspectCompanyInput
 
     def __init__(self, neo4j_adapter: Neo4jToolAdapter | None = None):
         self._adapter = neo4j_adapter or Neo4jToolAdapter()
@@ -239,6 +245,7 @@ class InspectReportTool(BaseTool[InspectReportOutput]):
 
     name = "inspect_report"
     description = "Inspects report sections, page count, and chunk stats for a given ticker and year."
+    input_model = InspectReportInput
 
     def __init__(self, neo4j_adapter: Neo4jToolAdapter | None = None):
         self._adapter = neo4j_adapter or Neo4jToolAdapter()
