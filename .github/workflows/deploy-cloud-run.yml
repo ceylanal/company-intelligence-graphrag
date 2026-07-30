@@ -45,6 +45,7 @@ jobs:
         run: ./scripts/configure_vercel_wif.sh
 
   staging:
+    if: ${{ !inputs.configure_vercel_wif }}
     runs-on: ubuntu-latest
     environment: staging
     steps:
