@@ -8,6 +8,7 @@ set -euo pipefail
 readonly VERCEL_TEAM_ID="team_qNUQ6N3WoZ7DfOP21idJFfqy"
 readonly VERCEL_TEAM_SLUG="ascs-projects-740622ac"
 readonly VERCEL_PROJECT_ID="prj_nUnGou9ZPk2PArkYYjKJ0zKjm3rA"
+readonly VERCEL_PROJECT_SLUG="company-intelligence-graphrag-staging"
 readonly VERCEL_ISSUER="https://oidc.vercel.com/ascs-projects-740622ac"
 readonly VERCEL_AUDIENCE="https://vercel.com/ascs-projects-740622ac"
 readonly POOL_ID="vercel-staging"
@@ -16,8 +17,9 @@ readonly SERVICE_ACCOUNT_ID="graphrag-vercel-stg-invoker"
 
 PROJECT_NUMBER="$(gcloud projects describe "$GCP_PROJECT_ID" --format='value(projectNumber)')"
 SERVICE_ACCOUNT_EMAIL="${SERVICE_ACCOUNT_ID}@${GCP_PROJECT_ID}.iam.gserviceaccount.com"
-SUBJECT="owner:${VERCEL_TEAM_SLUG}:project:${VERCEL_PROJECT_ID}:environment:production"
+SUBJECT="owner:${VERCEL_TEAM_SLUG}:project:${VERCEL_PROJECT_SLUG}:environment:production"
 LEGACY_SUBJECT="owner:${VERCEL_TEAM_ID}:project:${VERCEL_PROJECT_ID}:environment:production"
+LEGACY_PROJECT_ID_SUBJECT="owner:${VERCEL_TEAM_SLUG}:project:${VERCEL_PROJECT_ID}:environment:production"
 ATTRIBUTE_CONDITION="assertion.sub == '${SUBJECT}'"
 POOL_RESOURCE="projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/${POOL_ID}"
 
@@ -64,6 +66,12 @@ gcloud iam service-accounts remove-iam-policy-binding "$SERVICE_ACCOUNT_EMAIL" \
   --project "$GCP_PROJECT_ID" \
   --role roles/iam.workloadIdentityUser \
   --member "principal://iam.googleapis.com/${POOL_RESOURCE}/subject/${LEGACY_SUBJECT}" \
+  --quiet || true
+
+gcloud iam service-accounts remove-iam-policy-binding "$SERVICE_ACCOUNT_EMAIL" \
+  --project "$GCP_PROJECT_ID" \
+  --role roles/iam.workloadIdentityUser \
+  --member "principal://iam.googleapis.com/${POOL_RESOURCE}/subject/${LEGACY_PROJECT_ID_SUBJECT}" \
   --quiet || true
 
 gcloud run services add-iam-policy-binding "$CLOUD_RUN_SERVICE" \
