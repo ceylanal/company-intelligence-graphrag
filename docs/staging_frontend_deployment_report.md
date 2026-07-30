@@ -5,11 +5,11 @@
 | Item | Value |
 | --- | --- |
 | Public staging URL | `https://company-intelligence-graphrag-stagi.vercel.app` |
-| Latest application deployment | `https://company-intelligence-graphrag-staging-141luoz9c.vercel.app` (BFF WIF health verification) |
+| Latest application deployment | `https://company-intelligence-graphrag-staging-3lpk2cg0k.vercel.app` |
 | Private Cloud Run URL | `https://company-graphrag-staging-77096651349.europe-west1.run.app` |
 | Vercel project | `ascs-projects-740622ac/company-intelligence-graphrag-staging` |
 | Framework / root directory | Next.js / `frontend` |
-| Branch / current BFF commit | `codex/vercel-staging-frontend` / `b10dc56` |
+| Branch / current BFF commit | `codex/vercel-staging-frontend` / `12ffe8d` |
 
 The Vercel project uses production-domain access with preview-only deployment
 protection. The public staging URL returns HTTP 200 without a Vercel login. Preview
@@ -87,7 +87,9 @@ by the browser. No wildcard CORS configuration was introduced.
 | Anonymous Cloud Run `/health/ready` | PASS — HTTP 403, remains private |
 | Same-origin `/api/health/live` | PASS — HTTP 200, `{"status":"live","environment":"staging"}` |
 | Anonymous private Cloud Run `/health/live` | PASS — HTTP 403 |
-| Same-origin real `/api/research/stream` | BLOCKED — HTTP 401 from the existing backend `API_KEY` middleware; WIF is already accepted |
+| Same-origin real `/api/research` | PASS — HTTP 200 in 8.62s; grounded ASELSAN response, 10 cited source chunks, and OTEL trace ID returned |
+| Browser health status | PASS — public staging UI displays `Backend ready` after hard refresh |
+| Browser research interaction | BLOCKED — frontend calls `/api/research/stream`, but the deployed backend returns HTTP 404 |
 | `npm run lint` | PASS |
 | `npm run typecheck` | PASS |
 | `npm run build` | PASS — dynamic `/api/[...path]` route emitted |
@@ -117,11 +119,21 @@ The bootstrap script now uses the Vercel team slug and project slug in the exact
 subject, updates existing providers, and removes obsolete bindings. It does not make
 Cloud Run public or create a key.
 
-The only remaining configuration is the existing application API key. Add its value
-as Vercel Production **Sensitive** variable `BACKEND_API_KEY`; the BFF forwards it
-only to the private backend as `X-API-Key`. After redeployment, run the real
-(unmocked) acceptance
-cases: health, research HTTP 200 / progressive NDJSON, citation and PDF routes,
-graph context, cancellation, safety and insufficient-evidence states, console audit,
-and staging telemetry trace. Until then those real-backend checks are intentionally
-not reported as passing.
+The existing application API key is configured as Vercel Production **Sensitive**
+variable `BACKEND_API_KEY`; the BFF forwards it only to the private backend as
+`X-API-Key`.
+
+## Deployed-backend contract limitation
+
+The authoritative deployed `GET /openapi.json`, read through the authenticated BFF,
+lists only `/health/live`, `/health/ready`, and non-streaming `POST /research`.
+It does not publish `/research/stream`, company/comparison, citation/source/PDF, or
+graph-context routes. The real `/research` response contains grounded source entries
+in its answer text and telemetry metadata, but it is one JSON document rather than
+NDJSON. Consequently the existing frontend cannot receive progressive workflow
+events or open structured citation/PDF/graph routes from this backend revision.
+
+The BFF intentionally does not synthesize or buffer fake NDJSON because that would
+violate the streaming requirement. Completing those browser acceptance cases requires
+the existing Cloud Run service to expose the frontend’s streaming/source/graph API
+contract; no backend deployment was performed in this work.
