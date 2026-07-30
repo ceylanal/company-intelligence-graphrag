@@ -44,6 +44,7 @@ type ProxyConfig = {
   poolId: string;
   providerId: string;
   serviceAccountEmail: string;
+  backendApiKey: string;
 };
 
 type TokenExchange = { access_token?: string };
@@ -82,8 +83,9 @@ function config(): ProxyConfig {
     poolId: process.env.GCP_WORKLOAD_IDENTITY_POOL_ID ?? "",
     providerId: process.env.GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID ?? "",
     serviceAccountEmail: process.env.GCP_SERVICE_ACCOUNT_EMAIL ?? "",
+    backendApiKey: process.env.BACKEND_API_KEY ?? "",
   };
-  if (Object.values(values).some((value) => !value)) {
+  if (Object.entries(values).some(([key, value]) => key !== "backendApiKey" && !value)) {
     throw new Error("Server-side Cloud Run federation configuration is incomplete.");
   }
   const backend = new URL(values.backendUrl);
@@ -130,13 +132,14 @@ async function googleIdToken(oidcToken: string, proxyConfig: ProxyConfig, signal
   return token;
 }
 
-function forwardRequestHeaders(request: Request, idToken: string): Headers {
+function forwardRequestHeaders(request: Request, idToken: string, backendApiKey: string): Headers {
   const headers = new Headers();
   for (const name of REQUEST_HEADERS) {
     const value = request.headers.get(name);
     if (value) headers.set(name, value);
   }
   headers.set("Authorization", `Bearer ${idToken}`);
+  if (backendApiKey) headers.set("X-API-Key", backendApiKey);
   return headers;
 }
 
@@ -181,7 +184,7 @@ export async function proxyCloudRunRequest(request: Request, path: string[]): Pr
     const idToken = await googleIdToken(oidcToken, proxyConfig, timeout.signal);
     const init: RequestInit & { duplex?: "half" } = {
       method: request.method,
-      headers: forwardRequestHeaders(request, idToken),
+      headers: forwardRequestHeaders(request, idToken, proxyConfig.backendApiKey),
       body: ["GET", "HEAD"].includes(request.method) ? undefined : request.body,
       signal: timeout.signal,
       redirect: "manual",

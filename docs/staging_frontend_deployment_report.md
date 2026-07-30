@@ -5,11 +5,11 @@
 | Item | Value |
 | --- | --- |
 | Public staging URL | `https://company-intelligence-graphrag-stagi.vercel.app` |
-| Latest application deployment | `https://company-intelligence-graphrag-staging-141luoz9c.vercel.app` |
+| Latest application deployment | `https://company-intelligence-graphrag-staging-141luoz9c.vercel.app` (BFF WIF health verification) |
 | Private Cloud Run URL | `https://company-graphrag-staging-77096651349.europe-west1.run.app` |
 | Vercel project | `ascs-projects-740622ac/company-intelligence-graphrag-staging` |
 | Framework / root directory | Next.js / `frontend` |
-| Branch / current BFF commit | `codex/vercel-staging-frontend` / `dfa09d3` |
+| Branch / current BFF commit | `codex/vercel-staging-frontend` / `b10dc56` |
 
 The Vercel project uses production-domain access with preview-only deployment
 protection. The public staging URL returns HTTP 200 without a Vercel login. Preview
@@ -58,9 +58,12 @@ GCP_WORKLOAD_IDENTITY_POOL_ID
 GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID
 GCP_SERVICE_ACCOUNT_EMAIL
 PROXY_CONNECT_TIMEOUT_MS
+BACKEND_API_KEY
 ```
 
-All six names above are configured for Vercel Production. Vercel supplies
+The first six names above are configured for Vercel Production. `BACKEND_API_KEY`
+is intentionally not configured yet: it must be stored as a Vercel Sensitive
+server-side value, never placed in source or a `NEXT_PUBLIC_*` variable. Vercel supplies
 `VERCEL_OIDC_TOKEN` automatically to the function runtime and it is not stored as a
 project variable. The checked-in `frontend/.env.example` contains only an endpoint
 and identifiers, never credential material.
@@ -82,7 +85,9 @@ by the browser. No wildcard CORS configuration was introduced.
 | `curl -I <public-staging-url>` | PASS — HTTP 200 without Vercel login |
 | Browser navigation and hard refresh of public staging URL | PASS — application renders |
 | Anonymous Cloud Run `/health/ready` | PASS — HTTP 403, remains private |
-| Same-origin `/api/health/live` | BLOCKED — HTTP 502; Google STS rejects the token on the provider attribute condition |
+| Same-origin `/api/health/live` | PASS — HTTP 200, `{"status":"live","environment":"staging"}` |
+| Anonymous private Cloud Run `/health/live` | PASS — HTTP 403 |
+| Same-origin real `/api/research/stream` | BLOCKED — HTTP 401 from the existing backend `API_KEY` middleware; WIF is already accepted |
 | `npm run lint` | PASS |
 | `npm run typecheck` | PASS |
 | `npm run build` | PASS — dynamic `/api/[...path]` route emitted |
@@ -101,29 +106,21 @@ It cannot substitute for the remaining real private-backend acceptance test.
 
 ## Remaining IAM blocker and exact follow-up
 
-The initial GitHub bootstrap identity remains intentionally under-privileged for
-WIF administration. Separately, the real Vercel OIDC token was decoded only into
-non-secret claim metadata and proved the active subject is:
+The WIF provider, exact Vercel subject binding, and service-scoped Cloud Run invoker
+binding were successfully reconciled. The active subject is:
 
 ```text
 owner:ascs-projects-740622ac:project:company-intelligence-graphrag-staging:environment:production
 ```
 
-The original bootstrap script incorrectly used the Vercel team ID rather than the
-team slug in that `owner:` field. Google STS therefore returned `400` with “The
-given credential is rejected by the attribute condition.” The corrected
-`scripts/configure_vercel_wif.sh` now updates an existing provider, grants the
-correct impersonation subject, and removes the obsolete binding.
+The bootstrap script now uses the Vercel team slug and project slug in the exact
+subject, updates existing providers, and removes obsolete bindings. It does not make
+Cloud Run public or create a key.
 
-A GCP IAM administrator must run the corrected script once. It changes only the
-named WIF provider and its dedicated service-account binding; it does not make Cloud
-Run public or create a key. The following are then re-verified automatically:
-
-1. create/manage the named WIF pool and provider;
-2. create the dedicated invoker service account and its WIF impersonation binding;
-3. set `roles/run.invoker` on only `company-graphrag-staging` in `europe-west1`.
-
-After that update, redeploy Vercel and run the real (unmocked) acceptance
+The only remaining configuration is the existing application API key. Add its value
+as Vercel Production **Sensitive** variable `BACKEND_API_KEY`; the BFF forwards it
+only to the private backend as `X-API-Key`. After redeployment, run the real
+(unmocked) acceptance
 cases: health, research HTTP 200 / progressive NDJSON, citation and PDF routes,
 graph context, cancellation, safety and insufficient-evidence states, console audit,
 and staging telemetry trace. Until then those real-backend checks are intentionally
