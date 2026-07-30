@@ -7,6 +7,7 @@ from contextlib import asynccontextmanager
 
 import structlog
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from opentelemetry import trace
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
@@ -54,6 +55,16 @@ def create_app() -> FastAPI:
 
     app.include_router(health_router)
     app.include_router(research_router)
+    cors_origins = [origin.strip().rstrip("/") for origin in settings.cors_allowed_origins.split(",") if origin.strip()]
+    if cors_origins:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=cors_origins,
+            allow_credentials=False,
+            allow_methods=["GET", "POST"],
+            allow_headers=["Content-Type", "Idempotency-Key", "X-Request-ID"],
+            expose_headers=["X-Request-ID", "X-Run-ID", "X-Trace-ID"],
+        )
 
     @app.middleware("http")
     async def request_context(request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:

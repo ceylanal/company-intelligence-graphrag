@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     health_timeout_seconds: float = Field(default=3.0, gt=0)
     request_max_bytes: int = Field(default=1_048_576, ge=1024)
     api_key: str = Field(default="", description="Optional public API key")
+    cors_allowed_origins: str = Field(
+        default="http://localhost:3000",
+        description="Comma-separated browser origins allowed to call the API",
+    )
 
     # Qdrant Connection Settings (Local & Cloud)
     qdrant_host: str = Field(default="localhost", description="Qdrant host")

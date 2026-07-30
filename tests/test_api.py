@@ -47,6 +47,19 @@ def test_root_endpoint(client: TestClient) -> None:
     assert data["docs"] == "/docs"
 
 
+def test_cors_allows_configured_local_frontend_origin(client: TestClient) -> None:
+    """Keep browser CORS restricted to configured exact origins."""
+    response = client.options(
+        "/research/stream",
+        headers={
+            "Origin": "http://localhost:3000",
+            "Access-Control-Request-Method": "POST",
+        },
+    )
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "http://localhost:3000"
+
+
 def test_qdrant_health_authenticates_cloud_request() -> None:
     """Verify the readiness check authenticates against a protected Qdrant cluster."""
     response = Response(200)
