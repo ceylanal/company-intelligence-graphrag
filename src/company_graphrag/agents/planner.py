@@ -335,7 +335,7 @@ class PlannerAgent:
             detected_tickers=detected_tickers,
             detected_years=years,
             detected_metrics=detected_metrics,
-            is_out_of_domain=is_ood and not has_known_company,
+            is_out_of_domain=is_ood,
             is_comparison=is_comparison,
             is_multi_hop=is_multi_hop,
             steps=steps,
