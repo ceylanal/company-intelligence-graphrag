@@ -9,6 +9,7 @@ from company_graphrag.agents.researchers import (
     GraphResearcherAgent,
     VectorResearcherAgent,
 )
+from company_graphrag.agents.researchers.vector_researcher import build_intent_expansion
 from company_graphrag.agents.schema import EvidenceItem, ResearchState, ResearchTaskStep
 from company_graphrag.agents.tools.base import ToolResult
 from company_graphrag.agents.tools.models import GraphSearchOutput, VectorSearchOutput
@@ -163,6 +164,58 @@ def test_empty_result_query_expansion(sample_vector_evidence):
     assert len(res.used_queries) == 2
     assert res.status == "COMPLETED"
     assert len(res.evidence) == 1
+
+
+@pytest.mark.parametrize(
+    ("question", "expected_terms"),
+    [
+        ("Turkcell hangi yıl hizmete girmiştir?", ("kuruluş tarihi", "faaliyetlere başlama")),
+        ("ASELSAN'ın ana hissedarı kimdir?", ("ortaklık yapısı", "pay sahipleri")),
+        (
+            "Şişecam'ın soda külü üretimi yapan ABD'deki ortak yatırımı hangisidir?",
+            ("ortak yatırımlar", "doğal soda külü ABD"),
+        ),
+        (
+            "Koç Holding'in enerji sektöründe faaliyet gösteren ana bağlı ortaklıkları hangileridir?",
+            ("enerji şirketleri", "iç piyasa pozisyonları"),
+        ),
+    ],
+)
+def test_intent_expansion_uses_domain_vocabulary(question, expected_terms):
+    expanded = build_intent_expansion(question, "TEST", None)
+
+    assert expanded is not None
+    assert all(term in expanded for term in expected_terms)
+
+
+def test_intent_expansion_is_bounded_to_supported_intents():
+    assert build_intent_expansion("ASELSAN 2024 cirosu ne kadar?", "ASELS", None) is None
+
+
+def test_intent_expansion_runs_after_successful_primary_search(sample_vector_evidence):
+    mock_tool = MagicMock(spec=VectorSearchTool)
+    mock_tool.name = "vector_search"
+    mock_tool.run.return_value = ToolResult(
+        tool_name="vector_search",
+        success=True,
+        data=VectorSearchOutput(query="test", hits=[sample_vector_evidence], total_hits=1),
+        record_count=1,
+    )
+    agent = VectorResearcherAgent(vector_search_tool=mock_tool)
+    state = ResearchState(user_query="ASELSAN'ın ana hissedarı kimdir?")
+    step = ResearchTaskStep(
+        task_id="task_1",
+        question=state.user_query,
+        required_entities={"ticker": "ASELS", "year": 2024},
+        max_tool_calls=2,
+    )
+
+    result = agent.execute_task(step, state)
+
+    assert result.status == "COMPLETED"
+    assert result.tool_calls_count == 2
+    assert mock_tool.run.call_args_list[1].args[0].top_k == 25
+    assert "ortaklık yapısı" in mock_tool.run.call_args_list[1].args[0].query
 
 
 def test_duplicate_chunk_deduplication(sample_vector_evidence):

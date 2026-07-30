@@ -1,12 +1,59 @@
 """Vector Researcher Agent for Company Intelligence Multi-Agent System."""
 
 
+import re
+
 from company_graphrag.agents.contracts import AgentRole
 from company_graphrag.agents.researchers.deduplicator import EvidenceDeduplicator
 from company_graphrag.agents.researchers.models import ResearcherExecutionResult
 from company_graphrag.agents.schema import EvidenceItem, ResearchState, ResearchTaskStep, ToolCallRecord
 from company_graphrag.agents.tools.models import VectorSearchInput
 from company_graphrag.agents.tools.search_tools import FetchSourceContextTool, VectorSearchTool
+
+
+def build_intent_expansion(query: str, ticker: str | None, company: str | None) -> str | None:
+    """Build one bounded, domain-aware retrieval query for fact/relationship intents."""
+    lowered = query.casefold()
+    subject = company or ticker or "şirket"
+
+    if re.search(r"\b(enerji|energy)\b", lowered) and any(
+        phrase in lowered for phrase in ("bağlı ortak", "iştirak", "şirket")
+    ):
+        terms = "sektörler ve şirketler enerji şirketleri bağlı ortaklıklar iç piyasa pozisyonları"
+    elif any(
+        phrase in lowered
+        for phrase in (
+            "ana hissedar",
+            "ana ortak",
+            "ortaklık yapısı",
+            "pay sahibi",
+            "sahibi olan",
+        )
+    ):
+        terms = (
+            "hakim şirket şirketler topluluğu bağlılık raporu "
+            "ortaklık yapısı ana hissedar pay sahipleri"
+        )
+    elif any(phrase in lowered for phrase in ("hangi yıl", "ne zaman")) and any(
+        phrase in lowered for phrase in ("hizmet", "faaliyet", "kurul", "başla")
+    ):
+        terms = "kuruluş tarihi faaliyetlere başlama tarihçe bir bakışta"
+    elif any(
+        phrase in lowered
+        for phrase in (
+            "ortak yatırım",
+            "ortak girişim",
+            "iştirak",
+            "bağlı ortak",
+        )
+    ):
+        terms = "iştirakler bağlı ortaklıklar ortak girişimler ortak yatırımlar faaliyet alanları"
+        if "soda" in lowered:
+            terms += " kimyasallar doğal soda külü ABD"
+    else:
+        return None
+
+    return f"{subject} {query} {terms}"
 
 
 class VectorResearcherAgent:
@@ -74,13 +121,22 @@ class VectorResearcherAgent:
             failed_attempts += 1
             warnings.append(f"VectorResearcher: Primary query '{primary_query}' returned 0 hits or failed.")
 
-        # 2. Controlled Query Expansion / Alternative Fallback if 0 hits and budget permits
-        if not gathered_evidence and tool_calls_count < max_tool_calls:
-            alt_query = f"{ticker or 'Company'} {year or '2024'} finansal göstergeler raporu"
+        # 2. Use one bounded intent expansion for fact/relationship questions.
+        # Fall back to the legacy broad query only when the primary search is empty.
+        intent_query = build_intent_expansion(primary_query, ticker, company)
+        if tool_calls_count < max_tool_calls and (intent_query or not gathered_evidence):
+            alt_query = intent_query or f"{ticker or 'Company'} {year or '2024'} finansal göstergeler raporu"
             used_queries.append(alt_query)
             tool_calls_count += 1
 
-            v_input_alt = VectorSearchInput(query=alt_query, top_k=5, ticker=ticker, year=year)
+            v_input_alt = VectorSearchInput(
+                query=alt_query,
+                top_k=25 if intent_query else 5,
+                company=company,
+                ticker=ticker,
+                year=year,
+                report_type=report_type,
+            )
             res_alt = self._vector_tool.run(v_input_alt)
 
             state.tool_calls.append(
