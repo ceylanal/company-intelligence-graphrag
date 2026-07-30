@@ -177,8 +177,8 @@ export async function proxyCloudRunRequest(request: Request, path: string[]): Pr
   }
 
   const timeout = new AbortController();
-  const timeoutMs = Number.parseInt(process.env.PROXY_CONNECT_TIMEOUT_MS ?? "15000", 10);
-  const timer = setTimeout(() => timeout.abort(), Number.isFinite(timeoutMs) ? timeoutMs : 15000);
+  const timeoutMs = Number.parseInt(process.env.PROXY_CONNECT_TIMEOUT_MS ?? "120000", 10);
+  const timer = setTimeout(() => timeout.abort(), Number.isFinite(timeoutMs) ? timeoutMs : 120000);
   request.signal.addEventListener("abort", () => timeout.abort(), { once: true });
   try {
     const idToken = await googleIdToken(oidcToken, proxyConfig, timeout.signal);
