@@ -84,6 +84,21 @@ def test_ambiguous_company_name_resolution():
         assert expected_ticker in plan.detected_tickers, f"Failed for query '{q}'"
 
 
+def test_all_golden_dataset_company_aliases_are_resolved_and_query_is_preserved():
+    planner = PlannerAgent()
+    cases = [
+        ("Turkcell hangi yıl hizmete girmiştir?", "TCELL"),
+        ("Migros'un dijital markası hangisidir?", "MGROS"),
+        ("Ford Otosan'ın elektrikli aracı hangisidir?", "FROTO"),
+        ("Arçelik'in ana ortaklık yapısı nasıldır?", "ARCLK"),
+    ]
+
+    for query, ticker in cases:
+        plan = planner.plan(query)
+        assert plan.detected_tickers == [ticker]
+        assert all(step.question == query for step in plan.steps[:2])
+
+
 def test_out_of_domain_query_handling():
     """Test 6: Out-of-domain query handled without database tool execution."""
     planner = PlannerAgent()
@@ -106,6 +121,18 @@ def test_out_of_domain_query_handling():
     assert out.is_complete is True
     assert state.status == AgentWorkflowStatus.COMPLETED
     assert "kapsamı dışındadır" in state.final_answer
+
+
+def test_implausible_company_queries_are_safely_rejected():
+    planner = PlannerAgent()
+    for query in [
+        "ASELSAN 2040 yılı kuantum bilgisayar satış rakamı nedir?",
+        "Akbank mars kolonisindeki şube sayısı kaçtır?",
+        "THY ışık hızı yolcu taşıma kapasitesi ne kadardır?",
+        "Tüpraş antiparçacık yakıtı üretim hacmi ne kadardır?",
+        "Migros zihin okuma cihazı perakende satış fiyatı nedir?",
+    ]:
+        assert planner.plan(query).is_out_of_domain is True
 
 
 def test_task_dependency_resolution_and_duplicate_prevention():

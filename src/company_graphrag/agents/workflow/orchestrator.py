@@ -174,8 +174,12 @@ class ResearchWorkflow:
 
                 # Check HITL interrupt for ambiguous or out-of-domain query
                 if plan.is_out_of_domain:
-                    state.status = AgentWorkflowStatus.FAILED
-                    state.error = "Kapsam dışı veya belirsiz kullanıcı sorgusu."
+                    state.status = AgentWorkflowStatus.COMPLETED
+                    state.current_stage = WorkflowStage.COMPLETED.value
+                    state.final_answer = (
+                        "### ⚠️ Yetersiz Kanıt Uyarısı\n\n"
+                        "Mevcut kaynaklarda bu soruyu yanıtlamak için yeterli kanıt bulunamadı."
+                    )
                     self.saver.save_checkpoint(state)
                     return state
 

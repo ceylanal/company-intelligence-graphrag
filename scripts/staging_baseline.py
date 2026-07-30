@@ -117,14 +117,59 @@ def build_summary(results: list[dict[str, Any]], image_digest: str) -> dict[str,
     }
 
 
+def apply_quality_gates(
+    summary: dict[str, Any],
+    *,
+    min_correctness: float,
+    min_citation_correctness: float,
+    min_multi_hop_success: float,
+    max_hallucination: float,
+) -> dict[str, Any]:
+    """Attach explicit acceptance thresholds and an auditable gate decision."""
+    checks = {
+        "request_success": summary["request_success_rate"] == 1.0,
+        "correctness": summary["correctness_rate"] >= min_correctness,
+        "citation_correctness": (
+            summary["citation_correctness_proxy_rate"] >= min_citation_correctness
+        ),
+        "multi_hop_success": summary["multi_hop_success_rate"] >= min_multi_hop_success,
+        "hallucination": summary["hallucination_rate"] <= max_hallucination,
+    }
+    summary["quality_gates"] = {
+        "thresholds": {
+            "request_success_rate": 1.0,
+            "min_correctness_rate": min_correctness,
+            "min_citation_correctness_proxy_rate": min_citation_correctness,
+            "min_multi_hop_success_rate": min_multi_hop_success,
+            "max_hallucination_rate": max_hallucination,
+        },
+        "checks": checks,
+        "status": "PASS" if all(checks.values()) else "FAIL",
+    }
+    return summary
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--base-url", required=True)
     parser.add_argument("--image-digest", required=True)
-    parser.add_argument("--dataset", type=Path, default=Path("data/evals/golden_test.jsonl"))
+    parser.add_argument(
+        "--dataset",
+        type=Path,
+        default=Path("data/evals/staging_acceptance.jsonl"),
+    )
     parser.add_argument("--output-dir", type=Path, default=Path("artifacts/production_activation/evals"))
     parser.add_argument("--max-samples", type=int, default=34)
     parser.add_argument("--timeout-seconds", type=float, default=300.0)
+    parser.add_argument(
+        "--run-scope",
+        default=datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ"),
+        help="Unique workflow/run scope used to prevent stale checkpoint reuse.",
+    )
+    parser.add_argument("--min-correctness", type=float, default=0.90)
+    parser.add_argument("--min-citation-correctness", type=float, default=0.90)
+    parser.add_argument("--min-multi-hop-success", type=float, default=0.80)
+    parser.add_argument("--max-hallucination", type=float, default=0.10)
     args = parser.parse_args()
 
     api_key = os.environ.get("API_KEY", "")
@@ -145,7 +190,11 @@ def main() -> int:
             try:
                 response = client.post(
                     "/research",
-                    headers={"idempotency-key": f"staging-baseline-v1-{sample['id']}"},
+                    headers={
+                        "idempotency-key": (
+                            f"staging-baseline-v2-{args.run_scope}-{sample['id']}"
+                        )
+                    },
                     json={"query": sample["question"]},
                 )
                 latency_ms = (time.perf_counter() - started) * 1000
@@ -164,6 +213,7 @@ def main() -> int:
                 item = evaluate_sample(sample, str(payload.get("answer") or ""), latency_ms)
                 item["request_id"] = payload.get("request_id")
                 item["run_id"] = payload.get("run_id")
+                item["otel_trace_id"] = payload.get("metadata", {}).get("otel_trace_id")
                 results.append(item)
             except (httpx.HTTPError, ValueError) as exc:
                 results.append(
@@ -182,12 +232,19 @@ def main() -> int:
         encoding="utf-8",
     )
     summary = build_summary(results, args.image_digest)
+    apply_quality_gates(
+        summary,
+        min_correctness=args.min_correctness,
+        min_citation_correctness=args.min_citation_correctness,
+        min_multi_hop_success=args.min_multi_hop_success,
+        max_hallucination=args.max_hallucination,
+    )
     (args.output_dir / "staging-summary.json").write_text(
         json.dumps(summary, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
     print(args.output_dir / "staging-summary.json")
-    return 0 if summary["request_success_rate"] == 1.0 else 1
+    return 0 if summary["quality_gates"]["status"] == "PASS" else 1
 
 
 if __name__ == "__main__":

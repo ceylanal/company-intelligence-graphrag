@@ -49,6 +49,19 @@ def configure_telemetry(settings_obj: Settings = settings) -> None:
         logger.warning("telemetry_configuration_failed", error_type=type(exc).__name__)
 
 
+def flush_telemetry(timeout_millis: int = 5000) -> bool:
+    """Force buffered spans out before serverless CPU is throttled."""
+    provider = trace.get_tracer_provider()
+    force_flush = getattr(provider, "force_flush", None)
+    if not callable(force_flush):
+        return False
+    try:
+        return bool(force_flush(timeout_millis=timeout_millis))
+    except Exception as exc:
+        logger.warning("telemetry_flush_failed", error_type=type(exc).__name__)
+        return False
+
+
 def _parse_headers(raw: str) -> dict[str, str]:
     return {
         unquote(key.strip()): unquote(value.strip())

@@ -46,7 +46,7 @@ class VectorResearcherAgent:
 
         v_input = VectorSearchInput(
             query=primary_query,
-            top_k=5,
+            top_k=10,
             company=company,
             ticker=ticker,
             year=year,

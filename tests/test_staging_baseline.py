@@ -1,4 +1,4 @@
-from scripts.staging_baseline import build_summary, evaluate_sample
+from scripts.staging_baseline import apply_quality_gates, build_summary, evaluate_sample
 
 
 def test_staging_baseline_marks_supported_answer_as_correct() -> None:
@@ -44,3 +44,31 @@ def test_staging_baseline_summary_keeps_proxy_labels() -> None:
     assert summary["correctness_rate"] == 1.0
     assert summary["multi_hop_success_rate"] == 1.0
     assert "proxy" in summary["methodology"]["faithfulness"]
+
+
+def test_staging_quality_gates_are_enforced() -> None:
+    summary = {
+        "request_success_rate": 1.0,
+        "correctness_rate": 0.95,
+        "citation_correctness_proxy_rate": 0.95,
+        "multi_hop_success_rate": 0.90,
+        "hallucination_rate": 0.05,
+    }
+    gated = apply_quality_gates(
+        summary,
+        min_correctness=0.90,
+        min_citation_correctness=0.90,
+        min_multi_hop_success=0.80,
+        max_hallucination=0.10,
+    )
+    assert gated["quality_gates"]["status"] == "PASS"
+
+    summary["multi_hop_success_rate"] = 0.0
+    gated = apply_quality_gates(
+        summary,
+        min_correctness=0.90,
+        min_citation_correctness=0.90,
+        min_multi_hop_success=0.80,
+        max_hallucination=0.10,
+    )
+    assert gated["quality_gates"]["status"] == "FAIL"

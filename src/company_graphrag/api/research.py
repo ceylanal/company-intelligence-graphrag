@@ -17,7 +17,7 @@ from company_graphrag.config import settings
 from company_graphrag.observability.context import current_request_id
 from company_graphrag.observability.metrics import ACTIVE_RESEARCH
 from company_graphrag.observability.opik import record_opik_run
-from company_graphrag.observability.tracing import span
+from company_graphrag.observability.tracing import flush_telemetry, span
 
 router = APIRouter(prefix="/research", tags=["Research"])
 _semaphore = asyncio.Semaphore(settings.max_concurrent_research_tasks)
@@ -63,8 +63,22 @@ async def create_research(payload: ResearchRequest, request: Request) -> Researc
     async with _semaphore:
         ACTIVE_RESEARCH.inc()
         try:
-            with span("research_workflow", **{"request.id": request_id}):
+            with span("research_workflow", **{"request.id": request_id}) as research_span:
+                otel_trace_id = format(research_span.get_span_context().trace_id, "032x")
                 state = await anyio.to_thread.run_sync(ResearchWorkflow().run, payload.query, run_id)
+                retry_count = sum(state.retry_count.values())
+                budget = state.execution_budget
+                research_span.set_attributes(
+                    {
+                        "run.id": state.run_id,
+                        "llm.input_tokens": budget.input_tokens_used,
+                        "llm.output_tokens": budget.output_tokens_used,
+                        "llm.total_tokens": budget.tokens_used,
+                        "llm.estimated_cost_usd": budget.estimated_cost_usd,
+                        "llm.retry_count": retry_count,
+                        "llm.fallback_used": False,
+                    }
+                )
         except ValueError as exc:
             raise HTTPException(status_code=409, detail=str(exc)) from None
         except Exception as exc:
@@ -79,6 +93,7 @@ async def create_research(payload: ResearchRequest, request: Request) -> Researc
         prompt_bundle_version=state.prompt_bundle_version,
         config_hash=state.config_hash,
     )
+    flush_telemetry()
     return ResearchResponse(
         run_id=state.run_id,
         request_id=request_id,
@@ -89,5 +104,6 @@ async def create_research(payload: ResearchRequest, request: Request) -> Researc
             "workflow_version": state.workflow_version,
             "prompt_bundle_version": state.prompt_bundle_version,
             "config_hash": state.config_hash,
+            "otel_trace_id": otel_trace_id,
         },
     )

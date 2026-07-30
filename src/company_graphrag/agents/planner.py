@@ -34,6 +34,18 @@ KNOWN_COMPANIES: dict[str, str] = {
     "TÜPRAŞ": "TUPRS",
     "TUPRAS": "TUPRS",
     "TUPRS": "TUPRS",
+    "ARÇELİK": "ARCLK",
+    "ARCELIK": "ARCLK",
+    "ARCLK": "ARCLK",
+    "FORD OTOSAN": "FROTO",
+    "FORD OTOMOTİV": "FROTO",
+    "FORD OTOMOTIV": "FROTO",
+    "FROTO": "FROTO",
+    "MİGROS": "MGROS",
+    "MIGROS": "MGROS",
+    "MGROS": "MGROS",
+    "TURKCELL": "TCELL",
+    "TCELL": "TCELL",
 }
 
 MULTI_HOP_KEYWORDS = {
@@ -73,6 +85,11 @@ OUT_OF_DOMAIN_KEYWORDS = {
     "müzik",
     "skor",
     "maç",
+    "mars kolonisi",
+    "ışık hızı",
+    "antiparçacık",
+    "zihin okuma",
+    "kuantum bilgisayar",
 }
 
 METRIC_KEYWORDS = [
@@ -128,11 +145,8 @@ class PlannerAgent:
 
         # 1. Detect Out-of-Domain queries
         is_ood = any(ood_kw in normalized_query for ood_kw in OUT_OF_DOMAIN_KEYWORDS)
-        # Check if any financial/company entity is present
-        has_known_company = any(
-            normalize_turkish(c_name) in normalized_ascii for c_name in KNOWN_COMPANIES.keys()
-        )
-        if is_ood and not has_known_company:
+        is_ood = is_ood or bool(re.search(r"\b20(?:2[6-9]|[3-9]\d)\b", raw_query))
+        if is_ood:
             return ResearchPlan(
                 user_query=raw_query,
                 normalized_query=normalized_query,
@@ -187,7 +201,7 @@ class PlannerAgent:
 
             step1 = ResearchTaskStep(
                 task_id="task_1",
-                question=f"{t1} {yr}{m_str} verilerini getir.",
+                question=raw_query,
                 objective=f"Retrieve financial indicators for {t1} ({yr})",
                 required_entities={"ticker": t1, "year": yr, "metrics": detected_metrics},
                 retrieval_strategy="vector_search",
@@ -199,7 +213,7 @@ class PlannerAgent:
             )
             step2 = ResearchTaskStep(
                 task_id="task_2",
-                question=f"{t2} {yr}{m_str} verilerini getir.",
+                question=raw_query,
                 objective=f"Retrieve financial indicators for {t2} ({yr})",
                 required_entities={"ticker": t2, "year": yr, "metrics": detected_metrics},
                 retrieval_strategy="vector_search",
@@ -226,11 +240,10 @@ class PlannerAgent:
         elif is_multi_year and detected_tickers:
             t1 = detected_tickers[0]
             y1, y2 = years[0], years[1]
-            m_str = f" {' '.join(detected_metrics)}" if detected_metrics else ""
 
             step1 = ResearchTaskStep(
                 task_id="task_1",
-                question=f"{t1} {y1}{m_str} verilerini getir.",
+                question=raw_query,
                 objective=f"Retrieve metrics for {t1} in {y1}",
                 required_entities={"ticker": t1, "year": y1},
                 retrieval_strategy="vector_search",
@@ -242,7 +255,7 @@ class PlannerAgent:
             )
             step2 = ResearchTaskStep(
                 task_id="task_2",
-                question=f"{t1} {y2}{m_str} verilerini getir.",
+                question=raw_query,
                 objective=f"Retrieve metrics for {t1} in {y2}",
                 required_entities={"ticker": t1, "year": y2},
                 retrieval_strategy="vector_search",
@@ -272,7 +285,7 @@ class PlannerAgent:
 
             step1 = ResearchTaskStep(
                 task_id="task_1",
-                question=f"{t1} şirketinin bilgi grafiğindeki ilişki ve sektör bağlarını getir.",
+                question=raw_query,
                 objective=f"Retrieve Knowledge Graph paths for {t1}",
                 required_entities={"ticker": t1, "year": yr},
                 retrieval_strategy="graph_search",
@@ -284,7 +297,7 @@ class PlannerAgent:
             )
             step2 = ResearchTaskStep(
                 task_id="task_2",
-                question=f"{t1} ilişkili faaliyet ve ürün metin detaylarını getir.",
+                question=raw_query,
                 objective=f"Retrieve vector text context for {t1} graph entities",
                 required_entities={"ticker": t1, "year": yr},
                 retrieval_strategy="vector_search",
@@ -300,11 +313,10 @@ class PlannerAgent:
             # Single company single metric default
             t1 = detected_tickers[0] if detected_tickers else "ASELS"
             yr = years[0] if years else 2024
-            m_str = f" {' '.join(detected_metrics)}" if detected_metrics else ""
 
             step1 = ResearchTaskStep(
                 task_id="task_1",
-                question=f"{t1} {yr}{m_str} bilgilerini getir.",
+                question=raw_query,
                 objective=f"Retrieve financial/operational info for {t1} ({yr})",
                 required_entities={"ticker": t1, "year": yr, "metrics": detected_metrics},
                 retrieval_strategy="vector_search",

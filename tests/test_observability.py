@@ -9,7 +9,11 @@ from company_graphrag.observability.context import (
     reset_context,
 )
 from company_graphrag.observability.logging import REDACTED, redact
-from company_graphrag.observability.tracing import _parse_headers, configure_telemetry
+from company_graphrag.observability.tracing import (
+    _parse_headers,
+    configure_telemetry,
+    flush_telemetry,
+)
 
 
 def test_trace_context_propagates_and_resets() -> None:
@@ -50,3 +54,7 @@ def test_otlp_headers_decode_standard_url_encoding() -> None:
         "Authorization": "Basic opaque-token",
         "x-scope": "staging/traces",
     }
+
+
+def test_flush_telemetry_is_safe_without_configured_sdk() -> None:
+    assert isinstance(flush_telemetry(timeout_millis=1), bool)

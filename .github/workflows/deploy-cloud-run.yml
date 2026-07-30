@@ -102,7 +102,13 @@ jobs:
           API_KEY="$API_KEY" uv run python scripts/staging_baseline.py \
             --base-url "$SERVICE_URL" \
             --image-digest "$IMAGE_DIGEST" \
-            --max-samples 34
+            --run-scope "${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
+            --dataset data/evals/staging_acceptance.jsonl \
+            --max-samples 18 \
+            --min-correctness 0.90 \
+            --min-citation-correctness 0.90 \
+            --min-multi-hop-success 0.80 \
+            --max-hallucination 0.10
       - name: Run bounded 1, 5, and 10 user load stages
         if: inputs.execute
         env:
