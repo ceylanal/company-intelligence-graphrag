@@ -134,7 +134,7 @@ function upstreamUrl(request: Request, path: string[], backendUrl: string): URL 
 }
 
 export async function proxyCloudRunRequest(request: Request, path: string[]): Promise<Response> {
-  const oidcToken = request.headers.get("x-vercel-oidc-token");
+  const oidcToken = process.env.VERCEL_OIDC_TOKEN ?? request.headers.get("x-vercel-oidc-token");
   if (!oidcToken) {
     return Response.json({ detail: "Server identity is unavailable." }, { status: 503 });
   }

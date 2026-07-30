@@ -11,7 +11,7 @@ readonly VERCEL_ISSUER="https://oidc.vercel.com/ascs-projects-740622ac"
 readonly VERCEL_AUDIENCE="https://vercel.com/ascs-projects-740622ac"
 readonly POOL_ID="vercel-staging"
 readonly PROVIDER_ID="vercel-staging"
-readonly SERVICE_ACCOUNT_ID="company-graphrag-vercel-staging-invoker"
+readonly SERVICE_ACCOUNT_ID="graphrag-vercel-stg-invoker"
 
 PROJECT_NUMBER="$(gcloud projects describe "$GCP_PROJECT_ID" --format='value(projectNumber)')"
 SERVICE_ACCOUNT_EMAIL="${SERVICE_ACCOUNT_ID}@${GCP_PROJECT_ID}.iam.gserviceaccount.com"
@@ -56,6 +56,8 @@ gcloud run services add-iam-policy-binding "$CLOUD_RUN_SERVICE" \
   --member "serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
   --quiet
 
-printf 'project_number=%s\n' "$PROJECT_NUMBER" >> "$GITHUB_OUTPUT"
-printf 'service_account_email=%s\n' "$SERVICE_ACCOUNT_EMAIL" >> "$GITHUB_OUTPUT"
-printf 'pool_id=%s\nprovider_id=%s\n' "$POOL_ID" "$PROVIDER_ID" >> "$GITHUB_OUTPUT"
+if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
+  printf 'project_number=%s\n' "$PROJECT_NUMBER" >> "$GITHUB_OUTPUT"
+  printf 'service_account_email=%s\n' "$SERVICE_ACCOUNT_EMAIL" >> "$GITHUB_OUTPUT"
+  printf 'pool_id=%s\nprovider_id=%s\n' "$POOL_ID" "$PROVIDER_ID" >> "$GITHUB_OUTPUT"
+fi
