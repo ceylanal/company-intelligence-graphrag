@@ -21,6 +21,7 @@ on:
 permissions:
   contents: read
   id-token: write
+  packages: read
 
 jobs:
   vercel-wif:
@@ -69,6 +70,22 @@ jobs:
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
       - uses: google-github-actions/setup-gcloud@e427ad8a34f8676edf47cf7d7925499adf3eb74f # v2
         if: inputs.execute
+      - name: Mirror signed image to Artifact Registry without rebuilding
+        if: inputs.execute
+        env:
+          SOURCE_IMAGE: ghcr.io/${{ github.repository }}
+          DESTINATION_IMAGE: ${{ vars.ARTIFACT_REGISTRY_IMAGE }}
+          IMAGE_DIGEST: ${{ inputs.image_digest }}
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_ACTOR: ${{ github.actor }}
+        run: |
+          task_tmp=$(mktemp -d)
+          curl --fail --location --silent --show-error \
+            https://github.com/google/go-containerregistry/releases/download/v0.21.8/go-containerregistry_Linux_x86_64.tar.gz \
+            --output "$task_tmp/go-containerregistry.tar.gz"
+          tar -xzf "$task_tmp/go-containerregistry.tar.gz" -C "$task_tmp" gcrane
+          chmod +x "$task_tmp/gcrane"
+          GCRANE_BIN="$task_tmp/gcrane" ./scripts/mirror_signed_image.sh
       - name: Deploy guarded staging revision
         if: inputs.execute
         id: deploy
