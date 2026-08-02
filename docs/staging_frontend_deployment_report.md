@@ -219,11 +219,12 @@ context is manufactured.
 
 | Item | Value |
 | --- | --- |
-| Source commits | `87e0ff7` (workflow-native stream/PDF), `a41bfe0` (immutable mirror gate) |
+| Source commits | `87e0ff7` (workflow-native stream/PDF), `a41bfe0` (immutable mirror gate), `7e74a9e` superseded (deployer cannot self-manage repository IAM) |
 | Published GHCR image | `ghcr.io/ceylanal/company-intelligence-graphrag@sha256:bdef4670255d679b8cf318c32769049d849003dbad9407031d1bc2b7f569ed90` |
 | Image signature | PASS — release evidence contains Cosign verification |
 | First staging deploy | FAILED — [run 30745292857](https://github.com/ceylanal/company-intelligence-graphrag/actions/runs/30745292857); digest was not mirrored into Artifact Registry |
 | Second staging deploy | FAILED before Cloud Run revision creation — [run 30745405803](https://github.com/ceylanal/company-intelligence-graphrag/actions/runs/30745405803); deploy identity lacks `artifactregistry.repositories.uploadArtifacts` on `europe-west1/company-graphrag` |
+| Third staging deploy | FAILED before image mirroring — [run 30745554398](https://github.com/ceylanal/company-intelligence-graphrag/actions/runs/30745554398); the deploy identity also lacks `artifactregistry.repositories.getIamPolicy`, so it cannot grant itself the required role |
 | New Cloud Run revision / trace IDs | Not created — deployment stopped before revision creation |
 
 The deployment workflow now copies the exact signed OCI index with pinned
@@ -231,5 +232,7 @@ The deployment workflow now copies the exact signed OCI index with pinned
 and only then invokes Cloud Run. This is a copy, not a rebuild. The remaining
 external prerequisite is a repository-level `roles/artifactregistry.writer`
 binding for the service account configured as `GCP_SERVICE_ACCOUNT` in the
-staging GitHub environment. No production resource, Cloud Run public access,
-or Cloud Run traffic changed during either failed attempt.
+staging GitHub environment. A repository IAM administrator must create that
+binding; the deployment identity cannot safely grant it to itself, so that
+attempt has been removed from the workflow. No production resource, Cloud Run
+public access, or Cloud Run traffic changed during the failed attempts.
