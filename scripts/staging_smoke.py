@@ -90,7 +90,10 @@ def main() -> None:
             expected={422},
             client=client,
             headers=auth_headers,
-            json_body={"query": "x"},
+            # An omitted required field is an unambiguous request-schema error.
+            # A one-character query is valid and intentionally handled by the
+            # research workflow, so it must not be used as an invalid fixture.
+            json_body={},
         )
         if api_key:
             platform_headers = {
