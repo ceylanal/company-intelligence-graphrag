@@ -5,10 +5,11 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+import threading
 import time
 import uuid
 from collections import defaultdict, deque
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Callable
 from pathlib import Path
 from typing import Any
 
@@ -74,6 +75,8 @@ class SourceDetail(BaseModel):
     graph_path: dict[str, Any] | list[Any] | str | None = None
     document_available: bool = False
     document_url: str | None = None
+    source_url: str | None = None
+    sha256: str | None = None
 
 
 def _enforce_rate_limit(client_key: str) -> None:
@@ -94,18 +97,41 @@ def _resolve_run_id(query: str, idempotency_key: str | None) -> str:
     return f"run_{uuid.uuid4().hex[:12]}"
 
 
+def _load_source_manifest() -> dict[str, dict[str, Any]]:
+    """Load verified indexed-document metadata keyed by the exact source filename."""
+    manifest_path = Path("data/report_manifest.jsonl")
+    if not manifest_path.is_file():
+        return {}
+    records: dict[str, dict[str, Any]] = {}
+    for line in manifest_path.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        record = json.loads(line)
+        file_path = record.get("file_path")
+        if record.get("validation_status") != "verified" or not isinstance(file_path, str):
+            continue
+        filename = Path(file_path).name
+        if filename:
+            records[filename] = record
+    return records
+
+
 def _resolve_source_document(source_file: str) -> Path | None:
-    """Resolve an exact trusted source filename without exposing quarantine or arbitrary paths."""
+    """Resolve only a verified manifest document under the trusted raw-data root."""
     filename = Path(source_file).name
     if not filename or filename != source_file or not filename.lower().endswith(".pdf"):
         return None
-    for trusted_root_name in ("data/raw", "data/archive"):
-        trusted_root = Path(trusted_root_name).resolve()
-        for candidate in trusted_root.glob(f"*/{filename}"):
-            resolved = candidate.resolve()
-            if resolved.is_file() and trusted_root in resolved.parents:
-                return resolved
-    return None
+    record = _load_source_manifest().get(filename)
+    if record is None:
+        return None
+    file_path = record.get("file_path")
+    if not isinstance(file_path, str):
+        return None
+    trusted_root = Path("data/raw").resolve()
+    resolved = Path(file_path).resolve()
+    if resolved.name != filename or not resolved.is_file() or trusted_root not in resolved.parents:
+        return None
+    return resolved
 
 
 def _source_detail(state: ResearchState, citation_index: int) -> SourceDetail:
@@ -115,6 +141,7 @@ def _source_detail(state: ResearchState, citation_index: int) -> SourceDetail:
         raise HTTPException(status_code=404, detail="Citation was not found for this research run.")
     evidence = next((item for item in state.evidence if item.chunk_id == citation.chunk_id), None)
     document = _resolve_source_document(citation.source_file)
+    manifest_record = _load_source_manifest().get(citation.source_file, {})
     document_url = (
         f"/research/{state.run_id}/sources/{citation.citation_index}/document" if document is not None else None
     )
@@ -126,10 +153,12 @@ def _source_detail(state: ResearchState, citation_index: int) -> SourceDetail:
         graph_path=evidence.graph_path if evidence else None,
         document_available=document is not None,
         document_url=document_url,
+        source_url=manifest_record.get("source_url"),
+        sha256=manifest_record.get("sha256"),
     )
 
 
-def _serialize_state(state: ResearchState, duration_ms: float) -> dict[str, Any]:
+def _serialize_sources(state: ResearchState) -> list[dict[str, Any]]:
     report = state.structured_report
     citations = report.citations if report else state.citations
     evidence_by_chunk = {item.chunk_id: item for item in state.evidence}
@@ -137,6 +166,7 @@ def _serialize_state(state: ResearchState, duration_ms: float) -> dict[str, Any]
     for citation in citations:
         evidence = evidence_by_chunk.get(citation.chunk_id)
         document_available = _resolve_source_document(citation.source_file) is not None
+        manifest_record = _load_source_manifest().get(citation.source_file, {})
         item = citation.model_dump()
         item.update(
             {
@@ -150,9 +180,18 @@ def _serialize_state(state: ResearchState, duration_ms: float) -> dict[str, Any]
                     if document_available
                     else None
                 ),
+                "source_url": manifest_record.get("source_url"),
+                "sha256": manifest_record.get("sha256"),
             }
         )
         sources.append(item)
+    return sources
+
+
+def _serialize_state(state: ResearchState, duration_ms: float) -> dict[str, Any]:
+    report = state.structured_report
+    citations = report.citations if report else state.citations
+    sources = _serialize_sources(state)
     plan = state.structured_plan.model_dump() if state.structured_plan else None
     coverage = report.source_coverage_ratio if report and hasattr(report, "source_coverage_ratio") else None
     if coverage is None and citations:
@@ -183,11 +222,23 @@ def _serialize_state(state: ResearchState, duration_ms: float) -> dict[str, Any]
     }
 
 
-def _run_workflow(query: str, run_id: str, request_id: str) -> tuple[ResearchState, str, float]:
+def _run_workflow(
+    query: str,
+    run_id: str,
+    request_id: str,
+    *,
+    event_handler: Callable[[str, ResearchState, dict[str, Any]], None] | None = None,
+    cancel_event: threading.Event | None = None,
+    answer_delta_transformer: Callable[[str, ResearchState], str] | None = None,
+) -> tuple[ResearchState, str, float]:
     started = time.monotonic()
     with span("research_workflow", **{"request.id": request_id}) as research_span:
         otel_trace_id = format(research_span.get_span_context().trace_id, "032x")
-        state = ResearchWorkflow().run(query, run_id)
+        state = ResearchWorkflow(
+            event_handler=event_handler,
+            cancellation_requested=cancel_event.is_set if cancel_event is not None else None,
+            answer_delta_transformer=answer_delta_transformer,
+        ).run(query, run_id)
         retry_count = sum(state.retry_count.values())
         budget = state.execution_budget
         research_span.set_attributes(
@@ -343,32 +394,65 @@ async def stream_research(payload: ResearchRequest, request: Request) -> Streami
             action=input_result.action.value,
             decision_codes=[decision.code for decision in input_result.decisions],
         )
+        loop = asyncio.get_running_loop()
+        workflow_events: asyncio.Queue[tuple[str, dict[str, Any]]] = asyncio.Queue()
+        cancel_event = threading.Event()
+        streamed_safety_results: list[Any] = []
+
+        def emit_workflow_event(event_type: str, state: ResearchState, payload: dict[str, Any]) -> None:
+            public_payload: dict[str, Any]
+            if event_type == "task" and state.structured_plan is not None:
+                public_type = "plan"
+                public_payload = {"plan": state.structured_plan.model_dump()}
+            elif event_type == "citations":
+                public_type = "citations"
+                public_payload = {"items": _serialize_sources(state)}
+            elif event_type == "workflow_complete":
+                return
+            else:
+                public_type = event_type
+                public_payload = payload
+            loop.call_soon_threadsafe(workflow_events.put_nowait, (public_type, public_payload))
+
+        def guard_answer_delta(delta: str, state: ResearchState) -> str:
+            valid_citations = {citation.citation_index for citation in state.citations}
+            result = _output_guardrails.evaluate(
+                delta,
+                valid_citations=valid_citations,
+                retrieved_context=[item.content or item.text for item in state.evidence],
+            )
+            streamed_safety_results.append(result)
+            return result.text
+
         task: asyncio.Task[tuple[ResearchState, str, float]] | None = None
         active_counted = False
-        last_stage: str | None = None
-        checkpoint_saver = JSONCheckpointSaver(settings.checkpoint_dir)
         try:
             async with _semaphore:
                 ACTIVE_RESEARCH.inc()
                 active_counted = True
                 task = asyncio.create_task(
-                    anyio.to_thread.run_sync(_run_workflow, input_result.question, run_id, request_id)
+                    anyio.to_thread.run_sync(
+                        lambda: _run_workflow(
+                            input_result.question,
+                            run_id,
+                            request_id,
+                            event_handler=emit_workflow_event,
+                            cancel_event=cancel_event,
+                            answer_delta_transformer=guard_answer_delta,
+                        ),
+                        abandon_on_cancel=True,
+                    )
                 )
-                while not task.done():
+                while not task.done() or not workflow_events.empty():
+                    if await request.is_disconnected():
+                        cancel_event.set()
+                        task.cancel()
+                        return
                     try:
-                        checkpoint = checkpoint_saver.load_checkpoint(run_id)
-                    except CheckpointNotFoundError:
-                        checkpoint = None
-                    if checkpoint is not None and checkpoint.current_stage != last_stage:
-                        last_stage = checkpoint.current_stage
-                        yield _ndjson(
-                            "stage",
-                            stage=checkpoint.current_stage,
-                            status=checkpoint.status.value,
-                        )
-                        if checkpoint.structured_plan is not None:
-                            yield _ndjson("plan", plan=checkpoint.structured_plan.model_dump())
-                    await asyncio.sleep(0.1)
+                        event_type, event_payload = await asyncio.wait_for(workflow_events.get(), timeout=0.1)
+                    except TimeoutError:
+                        continue
+                    yield _ndjson(event_type, **event_payload)
                 state, otel_trace_id, duration_ms = await task
         except ValueError:
             yield _ndjson(
@@ -379,8 +463,12 @@ async def stream_research(payload: ResearchRequest, request: Request) -> Streami
             )
             return
         except asyncio.CancelledError:
+            cancel_event.set()
+            if task is not None:
+                task.cancel()
             raise
         except Exception:
+            cancel_event.set()
             yield _ndjson(
                 "error",
                 code="backend_unavailable",
@@ -392,16 +480,31 @@ async def stream_research(payload: ResearchRequest, request: Request) -> Streami
             if active_counted:
                 ACTIVE_RESEARCH.dec()
 
-        if state.current_stage != last_stage:
-            yield _ndjson("stage", stage=state.current_stage, status=state.status.value)
+        if state.status.value == "cancelled":
+            yield _ndjson(
+                "error",
+                code="cancelled",
+                message="Research was cancelled.",
+                recoverable=True,
+            )
+            return
 
         output_result = _guard_output(state)
         serialized = _serialize_state(state, duration_ms)
+        streamed_decisions = [
+            decision
+            for result in streamed_safety_results
+            for decision in result.decisions
+        ]
         yield _ndjson(
             "safety",
             phase="output",
             action=output_result.action.value,
-            decision_codes=[decision.code for decision in output_result.decisions],
+            decision_codes=list(
+                dict.fromkeys(
+                    decision.code for decision in [*streamed_decisions, *output_result.decisions]
+                )
+            ),
         )
         if serialized["plan"] is not None:
             yield _ndjson("plan", plan=serialized["plan"])
@@ -410,9 +513,6 @@ async def stream_research(payload: ResearchRequest, request: Request) -> Streami
         yield _ndjson("metrics", metrics=serialized["metrics"])
 
         answer = output_result.text
-        for offset in range(0, len(answer), 512):
-            yield _ndjson("answer_delta", delta=answer[offset : offset + 512])
-            await asyncio.sleep(0)
 
         _record_completed_run(state)
         yield _ndjson(

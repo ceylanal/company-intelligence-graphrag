@@ -47,6 +47,8 @@ COPY --from=builder --chown=appuser:appgroup /app/src /app/src
 COPY --from=builder --chown=appuser:appgroup /app/pyproject.toml /app/pyproject.toml
 COPY --chown=appuser:appgroup README.md /app/README.md
 COPY --chown=appuser:appgroup config /app/config
+COPY --chown=appuser:appgroup data/report_manifest.jsonl /app/data/report_manifest.jsonl
+COPY --chown=appuser:appgroup data/raw /app/data/raw
 
 USER appuser
 

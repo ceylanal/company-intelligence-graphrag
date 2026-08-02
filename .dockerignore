@@ -6,9 +6,16 @@
 .ruff_cache
 artifacts
 data
+!data/
+data/*
+!data/raw/
+!data/raw/**
+!data/report_manifest.jsonl
 docs
 scratch
 tests
+frontend/node_modules
+frontend/.next
 **/__pycache__
 *.pyc
 .env

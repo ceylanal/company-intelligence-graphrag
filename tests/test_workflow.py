@@ -138,6 +138,31 @@ def test_workflow_cancellation(temp_checkpoint_dir):
     assert resumed.status == AgentWorkflowStatus.CANCELLED
 
 
+def test_streaming_workflow_events_cancel_between_real_stages(temp_checkpoint_dir):
+    """A disconnected stream stops before the next bounded workflow stage."""
+    events: list[tuple[str, str]] = []
+    cancel_requested = False
+
+    def on_event(event_type, state, _payload):
+        nonlocal cancel_requested
+        events.append((event_type, state.current_stage))
+        if event_type == "plan":
+            cancel_requested = True
+
+    workflow = ResearchWorkflow(
+        checkpoint_saver=JSONCheckpointSaver(temp_checkpoint_dir),
+        event_handler=on_event,
+        cancellation_requested=lambda: cancel_requested,
+    )
+
+    state = workflow.run("ASELSAN 2024 cirosu ne kadar?")
+
+    assert state.status == AgentWorkflowStatus.CANCELLED
+    assert ("plan", WorkflowStage.PLANNING.value) in events
+    assert ("stage", WorkflowStage.CANCELLED.value) in events
+    assert state.current_stage == WorkflowStage.CANCELLED.value
+
+
 def test_hitl_interrupt_and_resume(temp_checkpoint_dir):
     """Test 8: auto_approve_interrupts=False triggering status=PAUSED on interrupt condition and resuming."""
     saver = JSONCheckpointSaver(temp_checkpoint_dir)

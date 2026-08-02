@@ -1,6 +1,7 @@
 """Citation-First Report Writer Agent for Company Intelligence Multi-Agent System."""
 
 import re
+from collections.abc import Callable
 from typing import Any
 
 from company_graphrag.agents.contracts import AgentRole
@@ -46,7 +47,13 @@ class ReportWriterAgent:
     def __init__(self, checker: CitationCompletenessChecker | None = None):
         self._checker = checker or CitationCompletenessChecker()
 
-    def generate_report(self, state: ResearchState) -> ReportOutput:
+    def generate_report(
+        self,
+        state: ResearchState,
+        *,
+        on_delta: Callable[[str], None] | None = None,
+        transform_delta: Callable[[str, ResearchState], str] | None = None,
+    ) -> ReportOutput:
         """Synthesize verified claims and evidence into a structured ReportOutput."""
         user_query = state.user_query
         verified_claims = [c for c in state.verified_claims if c.verification_status in ["verified", "partially_verified", "contradicted"]]
@@ -66,8 +73,12 @@ class ReportWriterAgent:
                 unanswered_questions=[user_query],
                 quality_warnings=["Zero verified claims or evidence items present in ResearchState."],
             )
-            state.final_answer = output.answer
+            answer = transform_delta(output.answer, state) if transform_delta else output.answer
+            output.answer = answer
+            state.final_answer = answer
             state.structured_report = output
+            if on_delta:
+                on_delta(answer)
             return output
 
         # 2. Build Citation Mapping & Deduplicate Citations
@@ -93,6 +104,10 @@ class ReportWriterAgent:
                     active_citations.append(citation_item)
                     chunk_to_citation_idx[ev_id] = citation_counter
                     citation_counter += 1
+
+        # Make the real citation set available to the streaming safety boundary
+        # before any answer text is emitted.
+        state.citations = active_citations
 
         # 3. Synthesize Findings & Structured Sections
         findings_list: list[str] = []
@@ -177,7 +192,15 @@ class ReportWriterAgent:
 
         markdown_parts.append("\n".join(appendix_lines))
 
-        full_answer = "\n".join(markdown_parts)
+        rendered_parts: list[str] = []
+        for index, part in enumerate(markdown_parts):
+            delta = f"\n{part}" if index else part
+            if transform_delta:
+                delta = transform_delta(delta, state)
+            rendered_parts.append(delta)
+            if on_delta:
+                on_delta(delta)
+        full_answer = "".join(rendered_parts)
 
         # 6. Run Citation Completeness Check
         quality_warnings = self._checker.check_completeness(full_answer)

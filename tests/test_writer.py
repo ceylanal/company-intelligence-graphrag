@@ -63,6 +63,21 @@ def test_single_metric_report(sample_evidence, sample_verified_claim):
     assert state.final_answer == output.answer
 
 
+def test_writer_emits_real_section_deltas_before_final_answer(sample_evidence, sample_verified_claim):
+    """The writer exposes its generated sections; the API never slices a completed answer."""
+    state = ResearchState(user_query="ASELSAN 2024 cirosu ne kadar?")
+    state.add_evidence(sample_evidence)
+    state.verified_claims.append(sample_verified_claim)
+    deltas: list[str] = []
+
+    output = ReportWriterAgent().generate_report(state, on_delta=deltas.append)
+
+    assert len(deltas) > 1
+    assert "".join(deltas) == output.answer
+    assert deltas[0].startswith("# 📋")
+    assert any("Kaynakça" in delta for delta in deltas)
+
+
 def test_two_company_comparison_report(sample_evidence, sample_verified_claim):
     """Test 2: Two-company comparison report with comparison section."""
     thy_ev = EvidenceItem(

@@ -203,7 +203,7 @@ def test_stream_research_emits_grounded_contract(client: TestClient) -> None:
 
     with patch(
         "company_graphrag.api.research._run_workflow",
-        return_value=(state, "0" * 32, 15.5),
+        side_effect=_streaming_workflow(state),
     ):
         response = client.post("/research/stream", json={"query": "ASELSAN strategy"})
 
@@ -264,6 +264,30 @@ def _make_grounded_state(run_id: str = "run_test_abc123") -> ResearchState:
     return state
 
 
+def _streaming_workflow(state: ResearchState):
+    """Return a workflow double that emits genuine domain-style events in order."""
+
+    def run(*_args, **kwargs):
+        event_handler = kwargs.get("event_handler")
+        transform_delta = kwargs.get("answer_delta_transformer")
+        if event_handler is not None:
+            state.citations = state.structured_report.citations if state.structured_report else state.citations
+            event_handler("stage", state, {"stage": "PLANNING", "status": "planning"})
+            event_handler("evidence", state, {"items": [item.model_dump() for item in state.evidence]})
+            event_handler("citations", state, {})
+            answer = state.final_answer or ""
+            if transform_delta is not None:
+                answer = transform_delta(answer, state)
+            state.final_answer = answer
+            if state.structured_report is not None:
+                state.structured_report.answer = answer
+            event_handler("answer_delta", state, {"delta": answer})
+            event_handler("stage", state, {"stage": "COMPLETED", "status": "completed"})
+        return state, "0" * 32, 10.0
+
+    return run
+
+
 # ---------------------------------------------------------------------------
 # Contract: GET /research/companies
 # ---------------------------------------------------------------------------
@@ -306,7 +330,7 @@ def test_companies_contains_no_market_data(client: TestClient) -> None:
 def test_stream_accepted_event_is_first(client: TestClient) -> None:
     """The first NDJSON event must be 'accepted' with run_id and request_id."""
     state = _make_grounded_state()
-    with patch("company_graphrag.api.research._run_workflow", return_value=(state, "a" * 32, 10.0)):
+    with patch("company_graphrag.api.research._run_workflow", side_effect=_streaming_workflow(state)):
         response = client.post("/research/stream", json={"query": "ASELSAN strategy?"})
     assert response.status_code == 200
     events = [json.loads(line) for line in response.text.splitlines() if line.strip()]
@@ -319,7 +343,7 @@ def test_stream_accepted_event_is_first(client: TestClient) -> None:
 def test_stream_complete_event_is_last(client: TestClient) -> None:
     """The last NDJSON event must be 'complete' with answer, citations, and metrics."""
     state = _make_grounded_state()
-    with patch("company_graphrag.api.research._run_workflow", return_value=(state, "b" * 32, 12.0)):
+    with patch("company_graphrag.api.research._run_workflow", side_effect=_streaming_workflow(state)):
         response = client.post("/research/stream", json={"query": "ASELSAN strategy?"})
     assert response.status_code == 200
     events = [json.loads(line) for line in response.text.splitlines() if line.strip()]
@@ -336,7 +360,7 @@ def test_stream_complete_event_is_last(client: TestClient) -> None:
 def test_stream_event_sequence_satisfies_frontend_contract(client: TestClient) -> None:
     """Stream must emit: accepted, safety(input), stage*, evidence, citations, metrics, answer_delta*, complete."""
     state = _make_grounded_state()
-    with patch("company_graphrag.api.research._run_workflow", return_value=(state, "c" * 32, 8.0)):
+    with patch("company_graphrag.api.research._run_workflow", side_effect=_streaming_workflow(state)):
         response = client.post("/research/stream", json={"query": "ASELSAN strategy?"})
     assert response.status_code == 200
     event_types = [json.loads(line)["type"] for line in response.text.splitlines() if line.strip()]
@@ -357,7 +381,7 @@ def test_stream_event_sequence_satisfies_frontend_contract(client: TestClient) -
 def test_stream_complete_carries_graph_path_in_citations(client: TestClient) -> None:
     """Citations inside 'complete' must carry graph_path when evidence provides it."""
     state = _make_grounded_state()
-    with patch("company_graphrag.api.research._run_workflow", return_value=(state, "d" * 32, 9.0)):
+    with patch("company_graphrag.api.research._run_workflow", side_effect=_streaming_workflow(state)):
         response = client.post("/research/stream", json={"query": "ASELSAN strategy?"})
     assert response.status_code == 200
     events = [json.loads(line) for line in response.text.splitlines() if line.strip()]
@@ -370,7 +394,7 @@ def test_stream_complete_carries_graph_path_in_citations(client: TestClient) -> 
 def test_stream_safety_input_event_present(client: TestClient) -> None:
     """Input safety phase must be emitted early in the stream."""
     state = _make_grounded_state()
-    with patch("company_graphrag.api.research._run_workflow", return_value=(state, "e" * 32, 7.0)):
+    with patch("company_graphrag.api.research._run_workflow", side_effect=_streaming_workflow(state)):
         response = client.post("/research/stream", json={"query": "ASELSAN strategy?"})
     events = [json.loads(line) for line in response.text.splitlines() if line.strip()]
     safety_input = next((e for e in events if e["type"] == "safety" and e.get("phase") == "input"), None)
@@ -382,7 +406,7 @@ def test_stream_safety_input_event_present(client: TestClient) -> None:
 def test_stream_emits_answer_delta_chunks(client: TestClient) -> None:
     """Answer must be split into answer_delta chunks covering the full answer text."""
     state = _make_grounded_state()
-    with patch("company_graphrag.api.research._run_workflow", return_value=(state, "f" * 32, 6.0)):
+    with patch("company_graphrag.api.research._run_workflow", side_effect=_streaming_workflow(state)):
         response = client.post("/research/stream", json={"query": "ASELSAN strategy?"})
     events = [json.loads(line) for line in response.text.splitlines() if line.strip()]
     deltas = [e["delta"] for e in events if e["type"] == "answer_delta"]
@@ -395,7 +419,7 @@ def test_stream_emits_answer_delta_chunks(client: TestClient) -> None:
 def test_stream_metrics_has_required_fields(client: TestClient) -> None:
     """Metrics event must contain all fields expected by ResearchMetrics type."""
     state = _make_grounded_state()
-    with patch("company_graphrag.api.research._run_workflow", return_value=(state, "a" * 32, 42.0)):
+    with patch("company_graphrag.api.research._run_workflow", side_effect=_streaming_workflow(state)):
         response = client.post("/research/stream", json={"query": "ASELSAN strategy?"})
     events = [json.loads(line) for line in response.text.splitlines() if line.strip()]
     metrics_event = next(e for e in events if e["type"] == "metrics")
@@ -441,7 +465,7 @@ def test_stream_conflict_emits_error_event(client: TestClient) -> None:
 def test_stream_content_type_is_ndjson(client: TestClient) -> None:
     """Streaming endpoint must declare application/x-ndjson content-type."""
     state = _make_grounded_state()
-    with patch("company_graphrag.api.research._run_workflow", return_value=(state, "0" * 32, 5.0)):
+    with patch("company_graphrag.api.research._run_workflow", side_effect=_streaming_workflow(state)):
         response = client.post("/research/stream", json={"query": "test"})
     assert response.headers["content-type"].startswith("application/x-ndjson")
 
@@ -449,7 +473,7 @@ def test_stream_content_type_is_ndjson(client: TestClient) -> None:
 def test_stream_cache_control_header_disables_caching(client: TestClient) -> None:
     """Streaming response must send Cache-Control: no-cache to prevent buffering."""
     state = _make_grounded_state()
-    with patch("company_graphrag.api.research._run_workflow", return_value=(state, "0" * 32, 5.0)):
+    with patch("company_graphrag.api.research._run_workflow", side_effect=_streaming_workflow(state)):
         response = client.post("/research/stream", json={"query": "test"})
     cache_control = response.headers.get("cache-control", "")
     assert "no-cache" in cache_control
@@ -555,6 +579,27 @@ def test_get_source_document_returns_pdf_when_available(client: TestClient) -> N
             response = client.get("/research/run_pdf_available_test/sources/1/document")
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("application/pdf")
+
+
+def test_get_source_document_honors_http_range_requests(client: TestClient) -> None:
+    """The BFF can forward browser PDF range requests without buffering the file."""
+    state = _make_grounded_state(run_id="run_pdf_range_test")
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        fake_pdf = Path(tmp_dir) / "ASELS__2024__annual_report__tr.pdf"
+        fake_pdf.write_bytes(b"%PDF-1.4\nrange-check\n%%EOF\n")
+        with (
+            patch("company_graphrag.api.research.settings.checkpoint_dir", tmp_dir),
+            patch("company_graphrag.api.research._resolve_source_document", return_value=fake_pdf),
+        ):
+            JSONCheckpointSaver(tmp_dir).save_checkpoint(state)
+            response = client.get(
+                "/research/run_pdf_range_test/sources/1/document",
+                headers={"Range": "bytes=0-7"},
+            )
+    assert response.status_code == 206
+    assert response.headers["accept-ranges"] == "bytes"
+    assert response.headers["content-range"] == "bytes 0-7/27"
+    assert response.content == b"%PDF-1.4"
 
 
 def test_get_source_document_run_not_found_returns_404(client: TestClient) -> None:

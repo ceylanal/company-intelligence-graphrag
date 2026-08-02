@@ -1,6 +1,8 @@
 """Durable Multi-Agent Research Workflow Orchestrator."""
 
+from collections.abc import Callable
 from enum import StrEnum
+from typing import Any
 
 from company_graphrag.agents.planner import PlannerAgent
 from company_graphrag.agents.researchers import (
@@ -60,6 +62,9 @@ class ResearchWorkflow:
         graph_researcher: GraphResearcherAgent | None = None,
         verifier: EvidenceVerifierAgent | None = None,
         writer: ReportWriterAgent | None = None,
+        event_handler: Callable[[str, ResearchState, dict[str, Any]], None] | None = None,
+        cancellation_requested: Callable[[], bool] | None = None,
+        answer_delta_transformer: Callable[[str, ResearchState], str] | None = None,
     ):
         self.saver = checkpoint_saver or JSONCheckpointSaver(settings.checkpoint_dir)
         self.auto_approve_interrupts = auto_approve_interrupts
@@ -70,11 +75,35 @@ class ResearchWorkflow:
         self.graph_researcher = graph_researcher or GraphResearcherAgent()
         self.verifier = verifier or EvidenceVerifierAgent()
         self.writer = writer or ReportWriterAgent()
+        self.event_handler = event_handler
+        self.cancellation_requested = cancellation_requested
+        self.answer_delta_transformer = answer_delta_transformer
         self.agent_limits = AgentLimits(
             max_tool_calls=10,
             max_agent_steps=15,
             max_duration_seconds=settings.research_max_duration_seconds,
         )
+
+    def _emit(self, event_type: str, state: ResearchState, **payload: Any) -> None:
+        """Publish an in-process workflow event without coupling the domain to HTTP."""
+        if self.event_handler is not None:
+            self.event_handler(event_type, state, payload)
+
+    def _cancel_if_requested(self, state: ResearchState) -> bool:
+        """Cooperatively stop between bounded workflow operations."""
+        if self.cancellation_requested is None or not self.cancellation_requested():
+            return False
+        state.status = AgentWorkflowStatus.CANCELLED
+        state.current_stage = WorkflowStage.CANCELLED.value
+        state.warnings.append(f"Workflow '{state.run_id}' was cancelled by the connected client.")
+        self.saver.save_checkpoint(state)
+        self._emit(
+            "stage",
+            state,
+            stage=state.current_stage,
+            status=state.status.value,
+        )
+        return True
 
     def run(self, user_query: str, run_id: str | None = None) -> ResearchState:
         """Start a new durable research workflow execution for user_query."""
@@ -102,6 +131,12 @@ class ResearchWorkflow:
         state.status = AgentWorkflowStatus.PENDING
         state.current_stage = WorkflowStage.QUERY_INTAKE.value
         self.saver.save_checkpoint(state)
+        self._emit(
+            "stage",
+            state,
+            stage=state.current_stage,
+            status=state.status.value,
+        )
 
         return self._execute_from_current_stage(state)
 
@@ -162,13 +197,17 @@ class ResearchWorkflow:
                 break
 
         for st in stage_sequence[current_idx:]:
+            if self._cancel_if_requested(state):
+                return state
             state.current_stage = st.value
 
             if st == WorkflowStage.QUERY_INTAKE:
                 state.status = AgentWorkflowStatus.PENDING
+                self._emit("stage", state, stage=st.value, status=state.status.value)
 
             elif st == WorkflowStage.PLANNING:
                 state.status = AgentWorkflowStatus.PLANNING
+                self._emit("stage", state, stage=st.value, status=state.status.value)
                 with span(
                     "planner_agent",
                     **{
@@ -179,16 +218,29 @@ class ResearchWorkflow:
                 ):
                     plan = self.planner.plan(state.user_query)
                 state.normalized_query = plan.normalized_query
+                if self._cancel_if_requested(state):
+                    return state
 
                 # Check HITL interrupt for ambiguous or out-of-domain query
                 if plan.is_out_of_domain:
                     state.status = AgentWorkflowStatus.COMPLETED
                     state.current_stage = WorkflowStage.COMPLETED.value
-                    state.final_answer = (
+                    answer = (
                         "### ⚠️ Yetersiz Kanıt Uyarısı\n\n"
                         "Mevcut kaynaklarda bu soruyu yanıtlamak için yeterli kanıt bulunamadı."
                     )
+                    if self.answer_delta_transformer:
+                        answer = self.answer_delta_transformer(answer, state)
+                    state.final_answer = answer
                     self.saver.save_checkpoint(state)
+                    self._emit("answer_delta", state, delta=answer)
+                    self._emit(
+                        "stage",
+                        state,
+                        stage=state.current_stage,
+                        status=state.status.value,
+                    )
+                    self._emit("workflow_complete", state)
                     return state
 
                 if len(plan.steps) > 5 and not self.auto_approve_interrupts:
@@ -198,14 +250,19 @@ class ResearchWorkflow:
                         state.structured_plan = plan
                     return self._pause_workflow(state, WorkflowInterruptReason.OVERLY_BROAD_PLAN)
                 state.structured_plan = plan
+                self._emit("plan", state, plan=plan.model_dump())
 
             elif st == WorkflowStage.PLAN_VALIDATION:
+                self._emit("stage", state, stage=st.value, status=state.status.value)
                 self.supervisor.validate_plan(state)
 
             elif st == WorkflowStage.RESEARCH_EXECUTION:
                 state.status = AgentWorkflowStatus.RESEARCHING
+                self._emit("stage", state, stage=st.value, status=state.status.value)
                 # Execute ready tasks iteratively
                 while True:
+                    if self._cancel_if_requested(state):
+                        return state
                     if state.execution_budget.is_exhausted():
                         if not self.auto_approve_interrupts:
                             return self._pause_workflow(state, WorkflowInterruptReason.BUDGET_EXCEEDED)
@@ -216,6 +273,8 @@ class ResearchWorkflow:
                         break
 
                     for task_step in ready_tasks:
+                        if self._cancel_if_requested(state):
+                            return state
                         # Skip if already completed (idempotency)
                         if task_step.task_id in state.completed_tasks:
                             continue
@@ -232,6 +291,7 @@ class ResearchWorkflow:
                             return state
 
                         # Execute with appropriate researcher
+                        evidence_count_before = len(state.evidence)
                         if "graph_search" in task_step.required_tools:
                             with span("graph_retrieval", **{"run.id": state.run_id}):
                                 self.graph_researcher.execute_task(task_step, state)
@@ -240,6 +300,20 @@ class ResearchWorkflow:
                                 self.vector_researcher.execute_task(task_step, state)
 
                         state.completed_tasks.append(task_step.task_id)
+                        new_evidence = state.evidence[evidence_count_before:]
+                        self._emit(
+                            "task",
+                            state,
+                            task_id=task_step.task_id,
+                            status=task_step.status,
+                            result_summary=task_step.result_summary,
+                        )
+                        if new_evidence:
+                            self._emit(
+                                "evidence",
+                                state,
+                                items=[item.model_dump() for item in state.evidence],
+                            )
                         try:
                             self.agent_limits.check(state)
                         except AgentLimitError as exc:
@@ -251,15 +325,22 @@ class ResearchWorkflow:
                             return state
 
             elif st == WorkflowStage.EVIDENCE_MERGE:
+                self._emit("stage", state, stage=st.value, status=state.status.value)
                 # Deduplicate evidence to prevent duplicate items upon resume/retry
                 with span("hybrid_result_fusion", **{"run.id": state.run_id}):
                     state.evidence = EvidenceDeduplicator.deduplicate(state.evidence)
+                self._emit(
+                    "evidence",
+                    state,
+                    items=[item.model_dump() for item in state.evidence],
+                )
 
                 if not state.evidence and not self.auto_approve_interrupts:
                     return self._pause_workflow(state, WorkflowInterruptReason.INSUFFICIENT_EVIDENCE)
 
             elif st == WorkflowStage.VERIFICATION:
                 state.status = AgentWorkflowStatus.VERIFYING
+                self._emit("stage", state, stage=st.value, status=state.status.value)
                 with span("citation_validation", **{"run.id": state.run_id}):
                     self.verifier.verify_research_state(state)
 
@@ -267,24 +348,38 @@ class ResearchWorkflow:
                     return self._pause_workflow(state, WorkflowInterruptReason.HIGH_CONTRADICTIONS)
 
             elif st == WorkflowStage.TARGETED_FOLLOWUP:
+                self._emit("stage", state, stage=st.value, status=state.status.value)
                 # Check if follow up tasks were requested
                 pass
 
             elif st == WorkflowStage.REPORT_GENERATION:
                 state.status = AgentWorkflowStatus.WRITING
+                self._emit("stage", state, stage=st.value, status=state.status.value)
                 with span("answer_synthesis", **{"run.id": state.run_id}):
-                    self.writer.generate_report(state)
+                    self.writer.generate_report(
+                        state,
+                        on_delta=lambda delta: self._emit("answer_delta", state, delta=delta),
+                        transform_delta=self.answer_delta_transformer,
+                    )
+                self._emit(
+                    "citations",
+                    state,
+                    items=[item.model_dump() for item in state.citations],
+                )
 
             elif st == WorkflowStage.FINAL_QUALITY_GATE:
+                self._emit("stage", state, stage=st.value, status=state.status.value)
                 # Final audit
                 pass
 
             elif st == WorkflowStage.COMPLETED:
                 state.status = AgentWorkflowStatus.COMPLETED
+                self._emit("stage", state, stage=st.value, status=state.status.value)
 
             # Save checkpoint after completing each stage
             self.saver.save_checkpoint(state)
 
+        self._emit("workflow_complete", state)
         return state
 
     def _pause_workflow(self, state: ResearchState, reason: WorkflowInterruptReason) -> ResearchState:
