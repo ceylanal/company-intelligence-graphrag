@@ -70,6 +70,19 @@ jobs:
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
       - uses: google-github-actions/setup-gcloud@e427ad8a34f8676edf47cf7d7925499adf3eb74f # v2
         if: inputs.execute
+      - name: Grant the staging deployer permission to mirror the signed image
+        if: inputs.execute
+        env:
+          GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+          GCP_REGION: ${{ vars.GCP_REGION }}
+          GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+        run: |
+          gcloud artifacts repositories add-iam-policy-binding company-graphrag \
+            --project "$GCP_PROJECT_ID" \
+            --location "$GCP_REGION" \
+            --member "serviceAccount:${GCP_SERVICE_ACCOUNT}" \
+            --role roles/artifactregistry.writer \
+            --quiet
       - name: Mirror signed image to Artifact Registry without rebuilding
         if: inputs.execute
         env:
