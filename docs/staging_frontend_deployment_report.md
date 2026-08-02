@@ -225,7 +225,10 @@ context is manufactured.
 | First staging deploy | FAILED — [run 30745292857](https://github.com/ceylanal/company-intelligence-graphrag/actions/runs/30745292857); digest was not mirrored into Artifact Registry |
 | Second staging deploy | FAILED before Cloud Run revision creation — [run 30745405803](https://github.com/ceylanal/company-intelligence-graphrag/actions/runs/30745405803); deploy identity lacks `artifactregistry.repositories.uploadArtifacts` on `europe-west1/company-graphrag` |
 | Third staging deploy | FAILED before image mirroring — [run 30745554398](https://github.com/ceylanal/company-intelligence-graphrag/actions/runs/30745554398); the deploy identity also lacks `artifactregistry.repositories.getIamPolicy`, so it cannot grant itself the required role |
-| New Cloud Run revision / trace IDs | Not created — deployment stopped before revision creation |
+| Artifact Registry mirror | PASS — `mirror-bdef4670255d` resolved to the identical signed digest |
+| Active Cloud Run revision | `company-graphrag-staging-sha-bdef4670-run-66207668`, 100% staging traffic |
+| Successful deploy stages | Image mirror and guarded private Cloud Run deploy PASS in [run 30766207668](https://github.com/ceylanal/company-intelligence-graphrag/actions/runs/30766207668) |
+| Workflow result | FAILED only at readiness smoke: Neo4j returned `ServiceUnavailable`; Qdrant, liveness, version, request validation, API-key rejection, and bounded real research passed |
 
 The deployment workflow now copies the exact signed OCI index with pinned
 `gcrane v0.21.8`, verifies the destination digest equals the signed GHCR digest,
@@ -236,3 +239,60 @@ staging GitHub environment. A repository IAM administrator must create that
 binding; the deployment identity cannot safely grant it to itself, so that
 attempt has been removed from the workflow. No production resource, Cloud Run
 public access, or Cloud Run traffic changed during the failed attempts.
+
+### 2026-08-02 deployed-staging verification
+
+The Artifact Registry Writer binding was then provisioned for the dedicated
+staging deployer. The deployer mirrored the existing signed image without a
+rebuild and deployed revision
+`company-graphrag-staging-sha-bdef4670-run-66207668` with all staging traffic.
+Direct anonymous access to
+`https://company-graphrag-staging-c6oeawtcxq-ew.a.run.app/health/live` remained
+HTTP 403. The same-origin Vercel BFF health route remained HTTP 200.
+
+Authenticated OpenAPI, fetched through the same-origin BFF, contains exactly:
+
+```
+/
+/health/live
+/health/ready
+/research
+/research/companies
+/research/stream
+/research/{run_id}/sources/{citation_index}
+/research/{run_id}/sources/{citation_index}/document
+/version
+```
+
+Real browser acceptance against the public Vercel staging app exercised a
+live ASELSAN research run. It displayed workflow steps progressively, rendered
+the final citation-backed answer and safety/evidence-coverage warnings, and
+loaded the actual indexed `ASELS__2024__annual_report__tr.pdf`. The source
+endpoint returned its real document name, SHA-256, official source URL, page,
+and vector retrieval method. The BFF PDF endpoint returned `206 Partial
+Content`, `Accept-Ranges: bytes`, and
+`Content-Range: bytes 0-255/14951328`. Responsive browser checks passed at
+desktop (1280px), tablet (768px), and mobile (390px) with no horizontal
+overflow; backend readiness, workflow steps, answer metrics, citations, and
+safety warning state were visible.
+
+Representative telemetry correlation IDs include smoke liveness trace
+`88cce1d7e4e943e18a531c5f0574947d`, bounded-research trace
+`5d149d5132fe4067b628c136ce4e0f92`, and BFF PDF trace
+`b8dd5735c0344ef0a08b539a600349c5`. The real browser runs showed no direct
+Cloud Run browser calls or client-side provider keys.
+
+#### Genuine remaining limitation
+
+The deployment workflow is correctly failing closed because the staging Neo4j
+Aura dependency currently returns `ServiceUnavailable`: `/health/ready` is
+HTTP 503 while Qdrant is healthy. The prior 2026-07-30 staging smoke artifacts
+show this same Neo4j configuration healthy, so this is an external runtime
+availability or credential issue, not a fabricated graph result. The research
+workflow preserves its documented vector fallback and returns `graph_path:
+null`; consequently GraphRAG context cannot presently be accepted as working.
+No IAM scope was broadened and no production resource was modified. The live
+browser cancellation control was exercised, but the short staging workflow
+completed before an end-to-end cancelled checkpoint could be observed; the
+workflow-level cancellation contract remains covered by the backend test
+suite. Re-run graph and cancellation acceptance after Neo4j health is restored.
