@@ -171,3 +171,65 @@ load test (1/5/10 users × 20 s).
   rendering in `<details class="graph-context">`.
 - **Comparison**: `plan.is_comparison` signals multi-company queries in the
   research plan; no separate comparison endpoint is called by the frontend.
+
+## 2026-08-02 streaming and PDF deployment addendum
+
+### Contract implementation
+
+The committed staging backend now uses workflow-native events rather than
+checkpoint polling followed by synthetic answer chunks:
+
+- `ResearchWorkflow` emits real stage transitions, plans, task/evidence updates,
+  citations, and completion signals while it runs.
+- `ReportWriterAgent` emits each report section at generation time. The stream
+  never receives a completed response and divides it into artificial fixed-size
+  chunks.
+- Each emitted answer section passes the existing output guardrail before it is
+  sent. The completed answer retains the existing final guardrail and
+  non-streaming `POST /research` behavior.
+- A disconnect sets a cooperative cancellation signal. The workflow saves a
+  `CANCELLED` checkpoint and stops before its next bounded stage or task.
+- Citation detail and PDF resolution now require an exact, `verified` entry in
+  `data/report_manifest.jsonl`. The staging image includes the matching tracked
+  `data/raw` PDFs, so `FileResponse` can return real `application/pdf` bytes and
+  native HTTP ranges; it does not construct source filenames, page numbers,
+  excerpts, URLs, or files.
+
+The frontend/BFF contract still has no separate graph-context, company-profile,
+or comparison API route. The exact supported surfaces are the catalog route,
+research plan/answer, and citation/evidence events: catalog profiles are backed
+by `config/companies.yaml`, comparisons by `plan.is_comparison` plus the
+citation-backed research report, and GraphRAG context by evidence
+`graph_path`. Where a run has no graph evidence, that field is `null`; no graph
+context is manufactured.
+
+### Local evidence
+
+| Check | Result |
+| --- | --- |
+| Full backend pytest suite (documented exclusions) | PASS — 405 passed |
+| Ruff | PASS |
+| mypy | PASS — 132 source files |
+| OpenAPI contract verification | PASS — `/health/live`, `/health/ready`, `/research`, `/research/stream`, `/research/companies`, source detail, and document paths present |
+| Native streaming unit/integration coverage | PASS — writer section deltas, workflow stage cancellation, NDJSON contract, safety, source/PDF, and HTTP Range coverage |
+| Local Docker build | NOT RUN — local Colima/Docker socket unavailable |
+| GitHub release container build/smoke/Trivy/SBOM | PASS — [run 30744920853](https://github.com/ceylanal/company-intelligence-graphrag/actions/runs/30744920853) |
+
+### Published image and deployment status
+
+| Item | Value |
+| --- | --- |
+| Source commits | `87e0ff7` (workflow-native stream/PDF), `a41bfe0` (immutable mirror gate) |
+| Published GHCR image | `ghcr.io/ceylanal/company-intelligence-graphrag@sha256:bdef4670255d679b8cf318c32769049d849003dbad9407031d1bc2b7f569ed90` |
+| Image signature | PASS — release evidence contains Cosign verification |
+| First staging deploy | FAILED — [run 30745292857](https://github.com/ceylanal/company-intelligence-graphrag/actions/runs/30745292857); digest was not mirrored into Artifact Registry |
+| Second staging deploy | FAILED before Cloud Run revision creation — [run 30745405803](https://github.com/ceylanal/company-intelligence-graphrag/actions/runs/30745405803); deploy identity lacks `artifactregistry.repositories.uploadArtifacts` on `europe-west1/company-graphrag` |
+| New Cloud Run revision / trace IDs | Not created — deployment stopped before revision creation |
+
+The deployment workflow now copies the exact signed OCI index with pinned
+`gcrane v0.21.8`, verifies the destination digest equals the signed GHCR digest,
+and only then invokes Cloud Run. This is a copy, not a rebuild. The remaining
+external prerequisite is a repository-level `roles/artifactregistry.writer`
+binding for the service account configured as `GCP_SERVICE_ACCOUNT` in the
+staging GitHub environment. No production resource, Cloud Run public access,
+or Cloud Run traffic changed during either failed attempt.
